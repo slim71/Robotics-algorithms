@@ -88,15 +88,15 @@ end
 showdetails(kuka)
 
 f = figure2();
-p = uipanel(f,'Units', 'normalized', 'Position',[1200 50 500 50]);
-c = uicontrol(p,'Style','slider', 'Position', [10 10 480 20]);
+ax = show(kuka, qq(:, end, 1));
+p = uipanel(f, 'Units', 'normalized','Position',[0.7 0.04 0.25 0.05]);
+c = uicontrol(p,'Style','slider', 'Units', 'normalized', 'Position', [0.05 0.1 0.9 0.7]);
 c.Value = 1;
 c.Min = 1;
-c.Max = size(q,3);
+c.Max = size(qq,3);
 c.SliderStep = [1/c.Max 10/c.Max];
-addlistener(c, 'Value', 'PostSet', @(hObject, events) animation_sot(hObject, events, kuka, q));
+addlistener(c, 'Value', 'PostSet', @(hObject, events) animation_sot(hObject, events, kuka, qq));
 
-ax = show(kuka, qq(:, end, 1));
 % 
 
 % hold on

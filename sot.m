@@ -10,11 +10,12 @@ function qsol = sot(J, xdot, kind, lambda)
     syms t
     syms q [6 1]
     
-    time = 10;
-    step = 1;
+    time = 2*pi;
+    step = 0.1;
     n_task = size(xdot,2) + 1; % == size(J,3)
     n_joints = size(J, 2);
-    qdot = zeros(n_joints, n_task);
+%     qdot = zeros(n_joints, n_task);
+    qdot = [0.01; 0.01; 0.01; 0.01; 0.01; 0.01]/1000;
     PA = eye(n_joints);
 
     for j = [1:n_task-1]
