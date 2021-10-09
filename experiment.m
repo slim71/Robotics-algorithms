@@ -32,11 +32,21 @@ Jac = simplify(JacobFromDH(denavit)); % Jac(t)
 % pj = pinv(Jac);
 % dj = damped(Jac, 100);
 
-xDotDes(t) = Omega*Rho*[cos(Omega*t); -sin(Omega*t); 0; 0; 0; 0]; 
+twistEE(t) = Omega*Rho*[cos(Omega*t); -sin(Omega*t); 0; 0; 0; 0]; 
+Oee(t) = [d1+Rho*cos(Omega*t), d2, d3+sin(Omega*t)];
+OeeHat(t) = AxisToSkew(Oee(t));
+Moee(t) = [[eye(3),     OeeHat(t)];
+           [zeros(3,3), eye(3)   ]];
+twistO(t) = Moee(t)*twistEE(t);
 
-qSotNorm = sot(Jac, xDotDes(t), 0);
+qSotNorm = sot(Jac, twistO(t), 0);
 % qSotNorm = sot(Jac(t), xDotDes(t), 0);
 % qSotDamp = sot(Jac, xDotDes, 1, 100);
+
+homDes(t) = HomX(0,[d1,d2,d3])*...
+            HomX(0,[Rho*cos(Omega*t), 0, Rho*sin(Omega*t)])*...
+            HomY(pi/2,[0,0,0])*...
+            HomZ(pi/2,[0,0,0]);
 
 qq = qSotNorm;
 
@@ -44,7 +54,7 @@ qq = qSotNorm;
 tfinal = 2*pi/Omega;
 
 %% Robot design
-kuka = rigidBodyTree('Dataformat', 'column', 'MaxNumBodies', 6);
+kuka = rigidBodyTree('Dataformat', 'column');%, 'MaxNumBodies', 6);
 
 dhparams = [B  pi/2     H   pi/2+qq(1,2,1);
             G  0        0   pi/2+qq(2,2,1);
@@ -59,24 +69,14 @@ jointNames = {'j1','j2','j3','j4','j5', 'j6'};
 jointTypes = {'revolute','revolute','revolute','revolute','revolute', 'revolute'};
 
 for k = 1:6
-
-    kukabody = rigidBody(bodyNames{k});
-    kukabody.Joint = rigidBodyJoint(jointNames{k}, jointTypes{k});
-    
-    setFixedTransform(kukabody.Joint, dhparams(k,:), 'dh');
-    
-    if k == 1
-        mat = [[1,  0,  0,  -3/20 + 3*cos(2*pi)/20]
-               [0,  0, -1,  31/50]
-               [0,  1,  0,  199/200 + 3*sin(2*pi)/20]
-               [0,  0,  0,  1]];
-        
-       setFixedTransform(kukabody.Joint, mat*kukabody.Joint.JointToParentTransform)
-    end
-    
-    
-    
-    addBody(kuka, kukabody, parentNames{k});
+    % Create a rigidBody object with a unique name
+    kukaBodies(k) = rigidBody(bodyNames{k});
+    % Create a rigidBodyJoint object and give it a unique name
+    kukaBodies(k).Joint = rigidBodyJoint(jointNames{k}, jointTypes{k});
+    % Use setFixedTransform to specify the body-to-body transformation using DH parameters
+    setFixedTransform(kukaBodies(k).Joint, dhparams(k,:), 'dh');
+    % Attach the body joint to the robot
+    addBody(kuka, kukaBodies(k), parentNames{k});
 end
 
 % Add a final body to function as the end-effector (handle)
@@ -96,6 +96,23 @@ c.Min = 1;
 c.Max = size(qq,3);
 c.SliderStep = [1/c.Max 10/c.Max];
 addlistener(c, 'Value', 'PostSet', @(hObject, events) animation_sot(hObject, events, kuka, qq));
+
+
+qq1 = mod(squeeze(qq(1,2,:)),2*pi);
+qq2 = mod(squeeze(qq(2,2,:)),2*pi);
+qq3 = mod(squeeze(qq(3,2,:)),2*pi);
+qq4 = mod(squeeze(qq(4,2,:)),2*pi);
+qq5 = mod(squeeze(qq(5,2,:)),2*pi);
+qq6 = mod(squeeze(qq(6,2,:)),2*pi);
+f2 = figure2();
+hold on
+grid
+plot(qq1)
+plot(qq2)
+plot(qq3)
+plot(qq4)
+plot(qq5)
+plot(qq6)
 
 % 
 

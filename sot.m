@@ -34,8 +34,8 @@ function qsol = sot(J, xdot, kind, lambda)
         
         if (kind == 0)
             for i = [2:n_task]
-                qdot(:, i) = qdot(:, i-1) + pinv(subs(J(:, :, i), q, qdot(:, i-1)) * PA(:, :, i-1)) * (subs(xdot(:, i), t, tt) - subs(J(:, :, i), q, qdot(:, i-1)) * qdot(:, i-1));
-                PA(:, :, i) = PA(:, :, i-1) - pinv(subs(J(:, :, i), q, qdot(:, i-1)) * PA(:,:,i-1)) * subs(J(:, :, i), q, qdot(:, i-1)) * PA(:,:,i-1);
+                qdot(:, i) = qdot(:, i-1) + pinv(vpa(subs(J(:, :, i), q, qdot(:, i-1)) * PA(:, :, i-1))) * (subs(xdot(:, i), t, tt) - subs(J(:, :, i), q, qdot(:, i-1)) * qdot(:, i-1));
+                PA(:, :, i) = PA(:, :, i-1) - pinv(vpa(subs(J(:, :, i), q, qdot(:, i-1)) * PA(:,:,i-1))) * subs(J(:, :, i), q, qdot(:, i-1)) * PA(:,:,i-1);
             end
         elseif (kind == 1)
             for i = [2:n_task]
