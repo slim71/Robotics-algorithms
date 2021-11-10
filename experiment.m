@@ -2,12 +2,14 @@ clc; clear all; close all;
 
 syms t
 syms q [6 1]
+% TODO: add assumptions?
 
 A     = 35/1000;
 B     = 25/1000;
 CC    = 80/1000;
 F     = 515/1000;
 H     = 400/1000;
+
 G     = 560/1000;
 Omega = 1000/1000;
 Rho   = 150/1000;
@@ -97,7 +99,16 @@ c.Max = size(qq,3);
 c.SliderStep = [1/c.Max 10/c.Max];
 addlistener(c, 'Value', 'PostSet', @(hObject, events) animation_sot(hObject, events, kuka, qq));
 
+f3 = figure2();
+% TODO: maybe in a while with a constant check to a flag to repeat?
+% or else, continuously in a thread?
+for i=1:size(qq,3)
+    show(kuka,qq(:,end,i));
+    drawnow
+    pause(0.1)
+end
 
+% TODO: make graphics in a foreach function
 qq1 = mod(squeeze(qq(1,2,:)),2*pi);
 qq2 = mod(squeeze(qq(2,2,:)),2*pi);
 qq3 = mod(squeeze(qq(3,2,:)),2*pi);
