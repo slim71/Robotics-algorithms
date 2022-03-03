@@ -1,6 +1,6 @@
 function qdot = clik_with_error(tt, q, J_sym, twist_sym, err_sym, gains)
     % initialization
-    qdot = zeros(7,1);
+    qdot = zeros(7,1); % doesn't do anything else than presetting dimensions
 
     jac = J_sym(q);                 % 6x7
     p_jac = pinv(jac);              % 7x6
