@@ -1,19 +1,25 @@
-function qsol = RP(J, xdot, kind)
-    qdot(l+1) = 0;
-    P(l+1) = eye();
-    
-    % J not computable, so neither P is
-    if (kind == 0)
-        for task = [l:-1:1]
-            P(task+1) = I - pinv(J(task)) * J(task);
-            qdot(task) = qdot(task-1) + pinv(J(task) * P(task+1)) * (xdot(task)-J(task) * qdot(task+1));
-        end
-    else
-        for task = [l:-1:1]
-            P(task+1) = I - damped(J(task)) * J(task);
-            qdot(task) = qdot(task-1) + damped(J(task) * P(task+1)) * (xdot(task)-J(task) * qdot(task+1));
-        end
+function qdot = rp(tt, qq, sym_Js, sym_twistes, lambda)
+    % initialization
+    qdot_lp1 = zeros(max(size(qq)),1);
+
+    % init
+    qdot_k = qdot_lp1;
+    JRA_k = [];
+
+    for k = [max(size(sym_twistes)):-1:1]
+        Jk = sym_Js{k}; % function handle
+        twistk = sym_twistes{k}; % function handle
+
+        Jk_qq = Jk(qq);
+        JRA_k = [Jk_qq; JRA_k];
+
+        [JRAPseudo, Tk, Hk] = LSEstimateSequential(JRA_k, size(Jk_qq, 1));
+
+        qdot_k = qdot_k + Tk * pinv(Jk_qq*Tk) * (twistk(tt)' - Jk_qq * qdot_k);
     end
-    
-    qsol = qdot(end);
+
+    qdot = zeros(max(size(qq)),1);
+    for k = [1:max(size(qq))]
+        qdot(k,1) = qdot_k(k);
+    end
 end
