@@ -13,7 +13,7 @@ function qdot = rp(tt, qq, sym_Js, sym_twistes, lambda)
         Jk_qq = Jk(qq);
         JRA_k = [Jk_qq; JRA_k];
 
-        [JRAPseudo, Tk, Hk] = LSEstimateSequential(JRA_k, size(Jk_qq, 1));
+        [JRAPseudo, Tk, Hk] = LSEstimateSequential(JRA_k, size(Jk_qq, 1), lambda);
 
         qdot_k = qdot_k + Tk * pinv(Jk_qq*Tk) * (twistk(tt)' - Jk_qq * qdot_k);
     end

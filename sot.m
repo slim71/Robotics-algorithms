@@ -5,7 +5,6 @@ function qdot = sot(tt, qq, sym_Js, sym_twistes, lambda)
     % init
     qdoti = q0dot;
     Pi = eye(max(size(qq)));
-    tot_J = [];
 
     % i=2...n:
     % q'_i = q'_(i-1) + inv(J_i*P_(i-1)) * (task_i - J_i*q'_(i-1))
@@ -15,7 +14,6 @@ function qdot = sot(tt, qq, sym_Js, sym_twistes, lambda)
         twisti = sym_twistes{i}; % function handle
 
         Ji_qq = Ji(qq);
-        tot_J = [tot_J; Ji_qq];
 
         [log, cnum] = check_ill_conditioning(Ji_qq * Pi);
         if log
@@ -24,9 +22,11 @@ function qdot = sot(tt, qq, sym_Js, sym_twistes, lambda)
             inverted = pinv(Ji_qq*Pi);
         end
 
-        qdoti = qdoti + inverted * (twisti(tt)' - Ji_qq * qdoti);
+        qdoti = qdoti + inverted * (twisti(tt,qq)' - Ji_qq * qdoti);
+
         % P not so much different
-        Pi = eye(max(size(qq))) - pinv(tot_J)*tot_J; %Pi - pinv(Ji_qq*Pi) * Ji_qq * Pi;
+%         Pi = eye(max(size(qq))) - pinv(tot_J)*tot_J; 
+        Pi = Pi - inverted * Ji_qq * Pi;%;pinv(Ji_qq*Pi) * Ji_qq * Pi;
     end
 
     for i=[1:max(size(qq))]
