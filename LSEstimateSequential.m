@@ -1,5 +1,7 @@
 function [Matpseudo, leftMat, rightMat] = LSEstimateSequential(matrix, row_num, lambda)
+% TODO help
 
+    % In case the subdivision is not valid
     if row_num >= size(matrix, 1) || row_num <= 0
         Matpseudo = blockMatPseudo(matrix);
         leftMat = Matpseudo;
@@ -7,29 +9,32 @@ function [Matpseudo, leftMat, rightMat] = LSEstimateSequential(matrix, row_num, 
         return;
     end
 
+    % Initialization
     R = matrix(1:row_num, :);
     S = matrix(row_num+1:end, :);
 
-    R = round(R,5);
+    % Round R for accuracy and to improve performance
+    R = round(R, 5);
 
-    % row/column matrix, cannot check conditioning number
+    % If R is row/column matrix, cannot check conditioning number properly
     if min(size(R)) == 1 || cond(R) > 1e3
         Rpseudo = damped_pinv(R, lambda);
     else
-%         Rpseudo = blockMatPseudo(R); % too slow
-        Rpseudo = pinv(R); % TODO: other types?
+        % Tried but always too slow for practical use
+        % Rpseudo = blockMatPseudo(R);
+        Rpseudo = pinv(R);
     end
 
     id_Rpseudo = eye(size(Rpseudo, 1));
-    
     E = S * (id_Rpseudo - Rpseudo * R); 
     
     % row/column matrix, cannot check conditioning number
     if min(size(E)) == 1 || cond(E) > 1e3
         Epseudo = damped_pinv(E, lambda);
     else
-        Epseudo = blockMatPseudo(E, lambda); % TODO: other types?
-%         Epseudo = pinv(E);
+        Epseudo = blockMatPseudo(E, lambda);
+        % As comparison, you can check numerical solution differences using
+        % Epseudo = pinv(E);
     end
 
     id_E = eye(size(E, 1));

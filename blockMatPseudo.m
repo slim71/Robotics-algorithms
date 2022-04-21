@@ -1,4 +1,5 @@
 function pseudo = blockMatPseudo(matrix)
+% TODO help
 
     % A contains an incrementing number of columns of the supplied matrix,
     % becoming a submatrix of it
@@ -13,7 +14,7 @@ function pseudo = blockMatPseudo(matrix)
         Apseudo = (A' * A)^(-1) * A';
     end
 
-    for k = [2:n_col]
+    for k = 2:n_col
         % k-th column of the matrix to invert
         ak = matrix(:, k); % a_k
 
@@ -27,11 +28,11 @@ function pseudo = blockMatPseudo(matrix)
         ck = round(ck,5);
         if all(ck == 0)
             bk = (1 + dk' * dk)^(-1) * dk' * Apseudo;
-        else % c_k≠0,  b_k = c_k^†
+        else % c_k ≠ 0,  b_k = c_k^†
             bk = pinv(ck); % (ck' * ck)^(-1) * ck';
         end
 
-	    % A_k^†= ( (A_(k−1)^† − d_k * b_k) ¦  b_k )
+	    % A_k^† = ( (A_(k−1)^† − d_k * b_k) ¦  b_k )
         Apseudo = [Apseudo - dk * bk; bk];
 
         % Increase submatrix A
