@@ -163,77 +163,6 @@ end
 
 showdetails(kuka)
 
-%% SOT (1 task)
-
-[t1_sot, y1_sot] = ode15s(@(t, y) sot(t, y, {J}, {task1}, 10^(-1)),...
-                       [t0 tf], qinit);
-
-q1_sot = y1_sot';
-
-sot1_fig = figure2('Name', 'SoT (one task) with ode15s');
-title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-', 'Color', 'black');
-hold on
-show(kuka, qinit');
-grid
-for k = 1:size(q1_sot, 2)
-    fk = ForKine(q1_sot(:, k));
-    sot1_positions = fk(1:3, 4);
-    plot3(sot1_positions(1), sot1_positions(2), sot1_positions(3), 'o');
-end
-
-% Animated plot
-% sot1_fig2 = figure2('Name', 'SoT (one task) with ode15s');
-% title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-% for i=[1:size(q1_sot, 2)]
-%     plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-', 'Color', 'black')
-%     hold on
-%     grid
-%     show(kuka, q1_sot(:, i));
-%     view(45, 45)
-%     drawnow
-%     pause(0.1)
-%     hold off
-% end
-%% SoT (1 task) errors
-
-sot1_err = zeros(6, size(q1_sot, 2));
-for k = 1:size(q1_sot, 2)
-    sot1_err(:, k) = EE_pose_errors(t1_sot(k), q1_sot(:, k));
-end
-
-sot1err_fig = figure2('Name', 'SoT (1 task) errors');
-for i = 1:6
-    sp_sot1 = subplot(6, 1, i);
-
-    if i <= 3 % position errors
-        plot(t1_sot, sot1_err(i, :))
-        ylabel("error [m]");
-
-    else % orientation error
-        plot(t1_sot, rad2deg(rem(sot1_err(i, :), 2*pi)))
-
-        ylabel("error [deg]");
-    end
-
-    grid
-    xlabel("time [s]");
-    switch i
-        case 1
-            title("X-axis position");
-        case 2
-            title("Y-axis position");
-        case 3
-            title("Z-axis position");
-        case 4
-            title("X-axis orientation");
-        case 5
-            title("Y-axis orientation");
-        case 6
-            title("Z-axis orientation");
-    end
-end
-
 %% SoT
 [t_sot, y_sot] = ode15s(@(t,y) sot(t, y, {J, J4}, {task1, task2}, 10^(-3)),...
                        [t0 tf], qinit);
@@ -310,54 +239,6 @@ for i = 1:6
             title("Z-axis orientation");
     end
 end
-
-%% Reverse Priority 1 task (does not complete)
-% experimented with different combinations withouth changing the desired
-% task first. In pratical times, these do not go on computing:
-% -6 -6, -6 -5, -6 -4, -6 -3, -6 -2, -6 -1
-% -5 -6, -5 -5, -5 -4, -5 -3, -5 -2, -5 -1
-% -4 -6, -4 -5, -4 -4, -4 -3, -4 -2, -4 -1
-% -3 -6, -3 -5, -3 -4, -3 -3, -3 -2, -3 -1
-% -2 -6, -2 -5, -2 -4, -2 -3, -2 -2, -2 -1
-% -1 -6, -1 -5, -1 -4, -1 -3, -1 -2, -1 -1  <- horrible
-% options2 = odeset('RelTol', 1e-5, 'AbsTol', 1e-1);
-%{
-K1_2 = 0.01 * eye(6); %
-task1_2 = @(t, q) (K1_2 * EE_pose_errors(t, q)')';
-
-[t1_rp, y1_rp] = ode45(@(t,y) rp(t, y, {J, J4}, {task1_2}, 10^(-5)),...
-                       [t0 tf], qinit, options);
-
-q1_rp = y1_rp';
-
-rp1_fig = figure2('Name', 'RP with ode15s');
-title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-', 'Color', 'black');
-hold on
-show(kuka, qinit');
-grid
-for k = 1:size(q1_rp, 2)
-    fk = ForKine(q1_rp(:, k));
-    rp1_position = fk(1:3, 4);
-    plot3(rp1_position(1), rp1_position(2), rp1_position(3), 'o');
-end
-
-% Animated plot
-% rp1_fig2 = figure2('Name', 'RP with ode15s');
-% title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-% for i=[1:size(q1_rp, 2)]
-%     plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-', 'Color', 'black')
-%     hold on
-%     grid
-%     show(kuka, q1_rp(:, i));
-%     view(45, 45)
-%     drawnow
-%     pause(0.1)
-%     hold off
-% end
-%}
-%% RP (1 task) errors
-% N/A since this integration does not complete
 
 %% Reverse Priority
 
