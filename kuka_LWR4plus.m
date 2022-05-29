@@ -4,9 +4,26 @@ clc; clear all; close all;
 syms t
 syms q [7 1]
 % TODO: assumptions?
-
+error_titles = [
+    "X-axis position";
+    "Y-axis position";
+    "Z-axis position";
+    "X-axis orientation";
+    "Y-axis orientation";
+    "Z-axis orientation"
+    ];
 %% Numerical Data [cm]
+% Robot measurements
 l0 = 0.11; l1 = 0.20; l2 = 0.20; l3 = 0.20; l4 = 0.20; l5 = 0.19;
+
+%Circle radius
+r = 0.2;
+
+% Task height from ground
+h = 0.65;
+
+% Dampening factor
+lambda = 1e-3;
 
 %% IK parameters
 qinit = [-pi/2, pi/4, 0, pi/3,0,0,0];
@@ -36,7 +53,7 @@ FK4 = @(q) DHFKine(denavit(q), 4);
 % avoiding 'diff' classic problems.
 
 % Desired EE position
-EE_des_pos = @(t) [0.2 * sin(t), 0.2 * cos(t), 0.65];
+EE_des_pos = @(t) [r * sin(t), r * cos(t), h];
 
 % Tanget and normal versor to the EE task
 % (and subsequent perpendicular axis)
@@ -102,31 +119,25 @@ J4_pose_errors = @(t, q) [J4_pos_error(t, q), J4_or_error(t, q)];
 
 %% Tasks
 
+[des_circle_x, des_circle_y, des_circle_z] = circleFromFun(EE_des_pos, t_circle);
+
 % Graphical representation of the circle describing the EE main task
 traj_fig = figure2('Name', 'Task trajectory');
+plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
 title("Main task trajectory");
-grid
+grid on
 hold on
-first_traj = [];
-for k = t_circle
-    first_traj = [first_traj; EE_despose(k)];
-end
-plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-')
-xlabel('x');ylabel('y');zlabel('z');
-view(45, 45)
+xlabel('x'); ylabel('y'); zlabel('z');
+xlim([-2*r, 2*r]); ylim([-2*r, 2*r]); zlim([0, 2*h]);
+view(45, 45);
 
 % Draw an example of the desired EE orientation
 init_p = indexAt(EE_despose(0),1:3);
-x_dir = tan_vers(k)';
-y_dir = norm_vers(k)';
-z_dir = z_vers(k)';
+start_x = tan_vers(0)' * 0.1;
+start_y = norm_vers(0)' * 0.1;
+start_z = z_vers(0)' * 0.2;
 
-quiv_x = quiver3(init_p(1), init_p(2), init_p(3), x_dir(1), x_dir(2), x_dir(3));
-quiv_x.Color = 'red';
-quiv_y = quiver3(init_p(1), init_p(2), init_p(3), y_dir(1), y_dir(2), y_dir(3));
-quiv_y.Color = 'green';
-quiv_z = quiver3(init_p(1), init_p(2), init_p(3), z_dir(1), z_dir(2), z_dir(3));
-quiv_z.Color = 'blue';
+EEOrientation(init_p, [start_x, start_y, start_z]);
 
 % Mathematical formulas for the two tasks
 K = 50 * eye(6);
@@ -164,14 +175,14 @@ end
 showdetails(kuka)
 
 %% SoT
-[t_sot, y_sot] = ode15s(@(t,y) sot(t, y, {J, J4}, {task1, task2}, 10^(-3)),...
+[t_sot, y_sot] = ode15s(@(t,y) sot(t, y, {J, J4}, {task1, task2}, lambda),...
                        [t0 tf], qinit);
 
 q_sot = y_sot';
 
 sot_fig = figure2('Name', 'SoT with ode15s');
-title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-', 'Color', 'black');
+plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
+title('SoT, $$ \lambda = 10^{-3} $$', 'interpreter', 'latex');
 hold on
 show(kuka, qinit');
 grid
@@ -182,18 +193,27 @@ for k = 1:size(q_sot, 2)
 end
 
 % Animated plot
-% sot2_fig = figure2('Name', 'SoT with ode15s');
-% title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-% for i=[1:size(q_sot, 2)]
-%     plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-', 'Color', 'black')
-%     hold on
-%     grid
-%     show(kuka, q_sot(:, i));
-%     view(45, 45)
-%     drawnow
-%     pause(0.1)
-%     hold off
-% end
+sot2_anim = figure2('Name', 'SoT with ode15s');
+for i = 1:size(q_sot, 2)
+    % Circle
+    plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
+    title('SoT, $$ \lambda = 10^{-3} $$', 'interpreter', 'latex');
+    hold on
+    grid
+    % Robot and EE position
+    s_sot = show(kuka, q_sot(:, i), 'Visuals', 'off');
+    patch_list = findall(s_sot, "Type", "Patch");
+    for x = 1:size(patch_list, 1)
+        patch_list(x).Visible = 'off';
+    end
+    % EE orientation
+    sot_R = indexAt(ForKine(q_sot(:, i)), 1:3, 1:3);
+    EEOrientation(indexAt(ForKine(q_sot(:, i)), 1:3, 4), sot_R*0.025);
+    view(45, 45)
+    drawnow
+    pause(0.1)
+    hold off
+end
 
 %% SoT errors
 
@@ -205,6 +225,7 @@ for k = 1:size(q_sot, 2)
 end
 
 soterr_fig = figure2('Name', 'SoT errors');
+sgtitle("SoT errors");
 for i = 1:6
     sp_sot = subplot(6, 1, i);
     hold on
@@ -224,20 +245,7 @@ for i = 1:6
     grid
     legend("EE", "J4");
     xlabel("time [s]");
-    switch i
-        case 1
-            title("X-axis position");
-        case 2
-            title("Y-axis position");
-        case 3
-            title("Z-axis position");
-        case 4
-            title("X-axis orientation");
-        case 5
-            title("Y-axis orientation");
-        case 6
-            title("Z-axis orientation");
-    end
+    title(error_titles(i));
 end
 
 %% Reverse Priority
@@ -249,10 +257,10 @@ end
 q_rp = y_rp';
 
 rp_fig = figure2('Name', 'RP with ode15s');
-title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-plot3(first_traj(:, 1), first_traj(:, 2), first_traj(:, 3), '-', 'Color', 'black');
+plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
+title('RP, $$ \lambda = 10^{-3} $$', 'interpreter', 'latex');
 hold on
-show(kuka, qinit');
+s = show(kuka, qinit');
 grid
 for k = 1:size(q_rp, 2)
     fk = ForKine(q_rp(:, k));
@@ -261,18 +269,25 @@ for k = 1:size(q_rp, 2)
 end
 
 % Animated plot
-% rp_fig2 = figure2('Name', 'RP with ode15s');
-% title('$$ \lambda = 10^{-1} $$', 'interpreter', 'latex');
-% for i=[1:size(q_rp, 2)]
-%     plot3(first_traj(:, 1), first_traj(:, 2),first_traj(:, 3), '-', 'Color', 'black')
-%     hold on
-%     grid
-%     show(kuka, q_rp(:, i));
-%     view(45, 45)
-%     drawnow
-%     pause(0.1)
-%     hold off
-% end
+rp_fig2 = figure2('Name', 'RP with ode15s');
+for i= 1:size(q_rp, 2)
+    plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
+    title('RP, $$ \lambda = 10^{-3} $$', 'interpreter', 'latex');
+    hold on
+    grid on
+    s_rp = show(kuka, q_rp(:, i));
+    patch_list = findall(s_rp, "Type", "Patch");
+    for x = 1:size(patch_list, 1)
+        patch_list(x).Visible = 'off';
+    end
+    % EE orientation
+    rp_R = indexAt(ForKine(q_rp(:, i)), 1:3, 1:3);
+    EEOrientation(indexAt(ForKine(q_rp(:, i)), 1:3, 4), rp_R*0.025);
+    view(45, 45)
+    drawnow
+    pause(0.1)
+    hold off
+end
 
 %% RP errors
 
@@ -284,6 +299,7 @@ for k = 1:size(q_rp, 2)
 end
 
 rperr_fig = figure2('Name', 'RP errors');
+sgtitle("RP errors");
 for i = 1:6
     sp_rp = subplot(6, 1, i);
     hold on
@@ -305,116 +321,73 @@ for i = 1:6
     grid
     legend("EE", "J4");
     xlabel("time [s]");
-    switch i
-        case 1
-            title("X-axis position");
-        case 2
-            title("Y-axis position");
-        case 3
-            title("Z-axis position");
-        case 4
-            title("X-axis orientation");
-        case 5
-            title("Y-axis orientation");
-        case 6
-            title("Z-axis orientation");
-    end
+    title(error_titles(i));
 end
 
 %% E-E error comparison
 
 poserr_fig = figure2('Name', 'EE position errors comparison');
+sgtitle("EE position errors")
 for i = 1:3
     subplot(3, 1, i)
     hold on
 
-    plot(t1_sot, sot1_err(i, :))
     plot(t_sot, sot_err(i, :))
     plot(t_rp, rp_err(i, :))
-    plot(t_rpAlt, rp_errAlt(i, :))
 
     grid
-    legend("SoT (1 task)", "SoT", "RP", "RP (1e-1)");
+    legend("SoT", "RP");
     xlabel("time [s]");
     ylabel("error [m]");
-    switch i
-        case 1
-            title("X-axis");
-        case 2
-            title("Y-axis");
-        case 3
-            title("Z-axis");
-    end
+    title(error_titles(i));
 end
 
 orerr_fig = figure2('Name', 'EE orientation errors comparison');
+sgtitle("EE orientation errors")
 for i = 4:6
     sp_orerr = subplot(3, 1, i-3);
     hold on
 
-    plot(t1_sot, rad2deg(rem(sot1_err(i, :), 2*pi)))
-    plot(t_sot, rad2deg(rem(sot_err(i, :), 2*pi)))
-    plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)))
-    plot(t_rpAlt, rad2deg(rem(rp_errAlt(i, :), 2*pi)))
+    plot(t_sot, rad2deg(rem(sot_err(i, :), 2*pi)));
+    plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)));
 
     grid
-    legend("SoT (1 task)", "SoT", "RP", "RP (1e-1)");
+    legend("SoT", "RP");
     xlabel("time [s]");
     ylabel("error [deg]");
-    switch i
-        case 1
-            title("X-axis");
-        case 2
-            title("Y-axis");
-        case 3
-            title("Z-axis");
-    end
+    title(error_titles(i));
 end
 
 %% 4th joint error comparison
 
 J4_poserr_fig = figure2('Name', '4th joint position errors comparison');
+sgtitle("4th joint position errors");
 for i = 1:3
     subplot(3, 1, i)
     hold on
 
     plot(t_sot, sot_err4(i, :))
     plot(t_rp, rp_err4(i, :))
-    plot(t_rpAlt, rp_errAlt4(i, :))
 
     grid
-    legend("SoT", "RP", "RP (1e-1)");
+    legend("SoT", "RP");
     xlabel("time [s]");
     ylabel("error [m]");
-    switch i
-        case 1
-            title("X-axis");
-        case 2
-            title("Y-axis");
-        case 3
-            title("Z-axis");
-    end
+    title(error_titles(i));
 end
 
 J4_orerr_fig = figure2('Name', '4th joint orientation errors comparison');
+sgtitle("4th joint orientation errors");
 for i = 4:6
     sp_orerr4 = subplot(3, 1, i-3);
     hold on
     
     plot(t_sot, rad2deg(rem(sot_err4(i, :), 2*pi)))
     plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
-    plot(t_rpAlt, rad2deg(rem(rp_errAlt4(i, :), 2*pi)))
 
     grid
-    legend("SoT", "RP", "RP (1e-1)");
+    legend("SoT", "RP");
     xlabel("time [s]");
     ylabel("error [deg]");
-    switch i
-        case 1
-            title("X-axis");
-        case 2
-            title("Y-axis");
-        case 3
-            title("Z-axis");
-    end
+    title(error_titles(i));
 end
