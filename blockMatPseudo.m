@@ -1,4 +1,4 @@
-function pseudo = blockMatPseudo(matrix)
+function pseudo = blockMatPseudo(matrix, rou)
 % TODO help
 
     % A contains an incrementing number of columns of the supplied matrix,
@@ -33,7 +33,11 @@ function pseudo = blockMatPseudo(matrix)
         end
 
 	    % A_k^† = ( (A_(k−1)^† − d_k * b_k) ¦  b_k )
-        Apseudo = [Apseudo - dk * bk; bk];
+        if rou == 0
+            Apseudo = [Apseudo - dk * bk; bk];
+        elseif rou == 1
+            Apseudo = [RankOneUpdate(Apseudo, -dk, bk); bk];
+        end
 
         % Increase submatrix A
         A = matrix(:, 1:k);

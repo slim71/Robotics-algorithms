@@ -14,9 +14,4 @@ function [xc, yc, zc] = circleFromFun(fun, time)
     yc = Ys;
     zc = Zs;
 
-%     figure()
-%     hold on
-%     pp = arrayfun(fun, time, 'UniformOutput', 'false');
-%     p = cell2mat(pp);
-%     plot3(p(:,1), p(:,2), p(:,3), 'ro-');
 end

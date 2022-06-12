@@ -1,4 +1,4 @@
-function qdot = rp(tt, qq, sym_Js, sym_twistes, lambda)
+function qdot = rp(tt, qq, sym_Js, sym_twistes, lambda, with_rou)
 % TODO help
 
     % Initialization
@@ -16,7 +16,7 @@ function qdot = rp(tt, qq, sym_Js, sym_twistes, lambda)
         % Computing Augmented Jacobian
         JRA_k = [Jk_qq; JRA_k];
 
-        [~, Tk, ~] = LSEstimateSequential(JRA_k, size(Jk_qq, 1), lambda);
+        [~, Tk, ~] = LSEstimateSequential(JRA_k, size(Jk_qq, 1), lambda, with_rou);
 
 
         % Solution for k=l...1:

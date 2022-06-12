@@ -1,9 +1,9 @@
-function [Matpseudo, leftMat, rightMat] = LSEstimateSequential(matrix, row_num, lambda)
+function [Matpseudo, leftMat, rightMat] = LSEstimateSequential(matrix, row_num, lambda, with_rou)
 % TODO help
 
     % In case the subdivision is not valid
     if row_num >= size(matrix, 1) || row_num <= 0
-        Matpseudo = blockMatPseudo(matrix);
+        Matpseudo = blockMatPseudo(matrix, rou);
         leftMat = Matpseudo;
         rightMat = [];
         return;
@@ -32,7 +32,7 @@ function [Matpseudo, leftMat, rightMat] = LSEstimateSequential(matrix, row_num, 
     if min(size(E)) == 1 || cond(E) > 1e3
         Epseudo = damped_pinv(E, lambda);
     else
-        Epseudo = blockMatPseudo(E, lambda);
+        Epseudo = blockMatPseudo(E, lambda, rou);
         % As comparison, you can check numerical solution differences using
         % Epseudo = pinv(E);
     end

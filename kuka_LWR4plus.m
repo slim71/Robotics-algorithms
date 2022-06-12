@@ -249,9 +249,8 @@ for i = 1:6
 end
 
 %% Reverse Priority
-
 % not much different from 10^-3 on
-[t_rp, y_rp] = ode45(@(t,y) rp(t, y, {J, J4}, {task1, task2}, 10^(-3)),...
+[t_rp, y_rp] = ode45(@(t,y) rp(t, y, {J, J4}, {task1, task2}, 10^(-3), 0),...
                        [t0 tf], qinit);
 
 q_rp = y_rp';
@@ -324,6 +323,71 @@ for i = 1:6
     title(error_titles(i));
 end
 
+%% RP with Rank-one update
+[t_rprou, y_rprou] = ode45(@(t,y) rp(t, y, {J, J4}, {task1, task2}, 10^(-3), 1),...
+                       [t0 tf], qinit);
+
+q_rprou = y_rprou';
+
+rprou_err = zeros(6, size(q_rprou, 2));
+rprou_err4 = zeros(6, size(q_rprou, 2));
+for k = 1:size(q_rprou, 2)
+    rprou_err(:, k) = EE_pose_errors(t_rprou(k), q_rprou(:, k));
+    rprou_err4(:, k) = J4_pose_errors(t_rprou(k), q_rprou(:, k));
+end
+
+rprou_poserr_fig = figure2('Name', 'RP (w/ rank-one update) EE errors');
+sgtitle("RP (w/ rank-one update) EE errors");
+for i = 1:6
+    sp_rpo1 = subplot(6, 1, i);
+    hold on
+
+    if i <= 3 % position errors
+        plot(t_rp, rp_err(i, :))
+        plot(t_rprou, rprou_err(i, :))
+
+        ylabel("error [m]");
+
+    else % orientation error
+        plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)))
+        plot(t_rprou, rad2deg(rem(rprou_err(i, :), 2*pi)))
+
+        ylabel("error [deg]");
+
+    end
+
+    grid
+    legend("Normal RP", "With rank-one update");
+    xlabel("time [s]");
+    title(error_titles(i));
+end
+
+rprou_orerr_fig = figure2('Name', 'RP (w/ rank-one update) J4 errors');
+sgtitle("RP (w/ rank-one update) J4 errors");
+for i = 1:6
+    sp_rpo1 = subplot(6, 1, i);
+    hold on
+
+    if i <= 3 % position errors
+        plot(t_rp, rp_err4(i, :))
+        plot(t_rprou, rprou_err4(i, :))
+
+        ylabel("error [m]");
+
+    else % orientation error
+        plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
+        plot(t_rprou, rad2deg(rem(rprou_err4(i, :), 2*pi)))
+
+        ylabel("error [deg]");
+
+    end
+
+    grid
+    legend("Normal RP", "With rank-one update");
+    xlabel("time [s]");
+    title(error_titles(i));
+end
+
 %% E-E error comparison
 
 poserr_fig = figure2('Name', 'EE position errors comparison');
@@ -334,13 +398,19 @@ for i = 1:3
 
     plot(t_sot, sot_err(i, :))
     plot(t_rp, rp_err(i, :))
+    plot(t_rprou, rprou_err(i, :))
 
     grid
-    legend("SoT", "RP");
+    legend("SoT", "RP", "RP-ROU");
     xlabel("time [s]");
     ylabel("error [m]");
     title(error_titles(i));
 end
+
+% for i=1:3
+%     subplot(3,1,i);
+%     xlim([2.5, 3.5])
+% end
 
 orerr_fig = figure2('Name', 'EE orientation errors comparison');
 sgtitle("EE orientation errors")
@@ -350,13 +420,19 @@ for i = 4:6
 
     plot(t_sot, rad2deg(rem(sot_err(i, :), 2*pi)));
     plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)));
+    plot(t_rprou, rad2deg(rem(rprou_err(i, :), 2*pi)));
 
     grid
-    legend("SoT", "RP");
+    legend("SoT", "RP", "RP-ROU");
     xlabel("time [s]");
     ylabel("error [deg]");
     title(error_titles(i));
 end
+
+% for i=1:3
+%     subplot(3,1,i);
+%     xlim([1.5, 2.5])
+% end
 
 %% 4th joint error comparison
 
@@ -368,13 +444,19 @@ for i = 1:3
 
     plot(t_sot, sot_err4(i, :))
     plot(t_rp, rp_err4(i, :))
+    plot(t_rprou, rprou_err4(i, :))
 
     grid
-    legend("SoT", "RP");
+    legend("SoT", "RP", "RP-ROU");
     xlabel("time [s]");
     ylabel("error [m]");
     title(error_titles(i));
 end
+
+% for i=1:3
+%     subplot(3,1,i);
+%     xlim([1.5, 2])
+% end
 
 J4_orerr_fig = figure2('Name', '4th joint orientation errors comparison');
 sgtitle("4th joint orientation errors");
@@ -384,10 +466,63 @@ for i = 4:6
     
     plot(t_sot, rad2deg(rem(sot_err4(i, :), 2*pi)))
     plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
+    plot(t_rprou, rad2deg(rem(rprou_err4(i, :), 2*pi)))
 
     grid
-    legend("SoT", "RP");
+    legend("SoT", "RP", "RP-ROU");
     xlabel("time [s]");
     ylabel("error [deg]");
     title(error_titles(i));
 end
+
+% for i=1:3
+%     subplot(3,1,i);
+%     xlim([1.5, 2.5])
+% end
+%% Usefule notes
+time_loops = 10;
+sot_times = zeros(1, time_loops);
+rp_times = zeros(1, time_loops);
+rprou_times = zeros(1, time_loops);
+
+for count = 1:time_loops
+    tic
+    [~, ~] = ode15s(@(t,y) sot(t, y, {J, J4}, {task1, task2}, lambda),...
+                           [t0 tf], qinit);
+    sot_times(count) = toc;
+    tic
+    [~, ~] = ode45(@(t,y) rp(t, y, {J, J4}, {task1, task2}, 10^(-3), 0),...
+                           [t0 tf], qinit);
+    rp_times(count) = toc;
+    tic
+    [~, ~] = ode45(@(t,y) rp(t, y, {J, J4}, {task1, task2}, 10^(-3), 1),...
+                           [t0 tf], qinit);
+    rprou_times(count) = toc;
+
+
+end
+
+methods = ["SoT"; "RP"; "RP-ROU"];
+comp_time = [mean(sot_times); mean(rp_times); mean(rprou_times)];
+mean_sot_error = mean(sot_err, 2);
+mean_rp_error = mean(rp_err, 2);
+mean_rprou_error = mean(rprou_err, 2);
+max_sot_error = max(sot_err, [], 2);
+max_rp_error = max(rp_err, [], 2);
+max_rprou_error = max(rprou_err, [], 2);
+
+table(comp_time, ...
+    [mean_sot_error(1:3)'; mean_rp_error(1:3)'; mean_rprou_error(1:3)'], ...
+    [rad2deg(rem(mean_sot_error(4:6)', 2*pi)); 
+        rad2deg(rem(mean_rp_error(4:6)', 2*pi)); 
+        rad2deg(rem(mean_rprou_error(4:6)', 2*pi))], ...
+    [max_sot_error(1:3)'; max_rp_error(1:3)'; max_rprou_error(1:3)'], ...
+    [rad2deg(rem(max_sot_error(4:6)', 2*pi));
+        rad2deg(rem(max_rp_error(4:6)', 2*pi)); 
+        rad2deg(rem(max_rprou_error(4:6)', 2*pi))], ...
+     'VariableNames', ...
+     {'Computational time', 'Mean position errors (x y z)', ...
+     'Mean orientation errors (x y z)', 'Max position errors (x y z)', ...
+     'Max orientation errors (x y z)'}, ...
+     'RowNames', methods)
+   
