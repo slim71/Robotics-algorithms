@@ -1,5 +1,13 @@
 function EEOrientation(point, directions)
-% TODO
+% EEORIENTATION plots a simple 3-axis system in the provided point aligned 
+%   with the provided directions.
+%   In this particular project, this is thought to be aligned with the 
+%   roll, pitch and yaw axis of an end-effector centered in the provided
+%   position.
+%
+% INPUT
+%   point      - starting position
+%   directions - axis directions
 
     % Get axis directions
     x_dir = directions(:, 1);

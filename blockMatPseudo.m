@@ -1,5 +1,8 @@
 function pseudo = blockMatPseudo(matrix, rou)
-% TODO help
+% BLOCKMATPSEUDO computes the pseudoinverse of a matrix using the recursive
+%   algorithm depicted in "Generalized Inverse Matrices" by T. L. Boullion
+%   and P. L. Odell [pag. 74].
+
 
     % A contains an incrementing number of columns of the supplied matrix,
     % becoming a submatrix of it

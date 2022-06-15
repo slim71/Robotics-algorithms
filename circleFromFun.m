@@ -1,4 +1,10 @@
 function [xc, yc, zc] = circleFromFun(fun, time)
+% CIRCLEFROMFUN returns the coordinate arrays of a circle which are
+%   computed through the supplied function.
+%
+% INPUT
+%   fun  - function handle
+%   time - time interval to use
 
     Xs = [];
     Ys = [];

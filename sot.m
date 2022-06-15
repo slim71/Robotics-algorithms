@@ -1,5 +1,16 @@
 function qdot = sot(tt, qq, sym_Js, sym_twistes, lambda)
-% TODO help
+% SOT solves inverse kinematics with the Stack of Tasks method.
+%   The Stack of Tasks method was depicted by N. Mansard, O. Stasse, P. 
+%   Evrardand A. Kheddar in their "A Versatile Generalized Inverted 
+%   Kinematics Implementation for Collaborative Working Humanoid Robots: 
+%   The Stack of Tasks".
+%
+% INPUT
+%   tt          - (int) time istant
+%   qq          - (int) joint variables array
+%   sym_Js      - (handle) Jacobian function handle
+%   sym_twistes - (handle) array of twist function handles
+%   lambda      - (int) dampening factor
 
     % Initialization
     q0dot = zeros(max(size(qq)),1);

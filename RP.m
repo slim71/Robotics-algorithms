@@ -1,5 +1,16 @@
 function qdot = rp(tt, qq, sym_Js, sym_twistes, lambda, with_rou)
-% TODO help
+% RP solves inverse kinematics with the Reverse Priority method.
+%   The Reverse Priority method was depicted by F. Flacco and A. De Luca in
+%   their "A reverse priority approach to multi-task control of redundant
+%   robots".
+%
+% INPUT
+%   tt          - (int) time istant
+%   qq          - (int) joint variables array
+%   sym_Js      - (handle) Jacobian function handle
+%   sym_twistes - (handle) array of twist function handles
+%   lambda      - (int) dampening factor
+%   with_rou    - (boolean) flag to use the Rank-one update
 
     % Initialization
     qdot_lp1 = zeros(max(size(qq)),1);

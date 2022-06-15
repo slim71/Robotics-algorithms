@@ -1,9 +1,20 @@
 function [Matpseudo, leftMat, rightMat] = LSEstimateSequential(matrix, row_num, lambda, with_rou)
-% TODO help
+% LSESTIMATESEQUENTIAL applies the algorithm depicted in "Generalized 
+%   Inverse Matrices" by T. L. Boullion and P. L. Odell [pag. 51].
+%   Using some properties of the pseudoinverse of a matrix, they described
+%   an algorithm often used in parameter estimation applications to move
+%   from th n1-th to the (n1 + n2)-th least square solution with a minimum 
+%   of operations.
+%
+% INPUT
+%   matrix   - the matrix to be inverted
+%   row_num  - index used for matrix partioning
+%   lambda   - dampening factor
+%   with_rou - flag to use rank-one update
 
     % In case the subdivision is not valid
     if row_num >= size(matrix, 1) || row_num <= 0
-        Matpseudo = blockMatPseudo(matrix, rou);
+        Matpseudo = blockMatPseudo(matrix, with_rou);
         leftMat = Matpseudo;
         rightMat = [];
         return;
@@ -32,7 +43,7 @@ function [Matpseudo, leftMat, rightMat] = LSEstimateSequential(matrix, row_num, 
     if min(size(E)) == 1 || cond(E) > 1e3
         Epseudo = damped_pinv(E, lambda);
     else
-        Epseudo = blockMatPseudo(E, lambda, rou);
+        Epseudo = blockMatPseudo(E, lambda, with_rou);
         % As comparison, you can check numerical solution differences using
         % Epseudo = pinv(E);
     end

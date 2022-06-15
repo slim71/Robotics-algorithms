@@ -3,7 +3,7 @@ clc; clear all; close all;
 
 syms t
 syms q [7 1]
-% TODO: assumptions?
+
 error_titles = [
     "X-axis position";
     "Y-axis position";
