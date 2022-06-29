@@ -12,6 +12,10 @@ error_titles = [
     "Y-axis orientation";
     "Z-axis orientation"
     ];
+euler_labels = ["X [deg]", "Y [deg]", "Z [deg]"];
+quat_labels = ["Qw", "Qx", "Qy", "Qz"];
+q_titles = ["q1", "q2", "q3", "q4", "q5", "q6", "q7"];
+
 %% Numerical Data [cm]
 % Robot measurements
 l0 = 0.11; l1 = 0.20; l2 = 0.20; l3 = 0.20; l4 = 0.20; l5 = 0.19;
@@ -117,6 +121,10 @@ J4_or_error = @(t, q) indexAt(QuatProd(J4_des_or_quat(t), QuatInv(J4_curr_or_qua
 
 J4_pose_errors = @(t, q) [J4_pos_error(t, q), J4_or_error(t, q)];
 
+% Entire quaternion representing the orientation error
+quat_for_orerr = @(t, q) QuatProd(EE_des_or_quat(t), QuatInv(EE_curr_or_quat(q)));
+quat_for_orerr4 = @(t, q) QuatProd(J4_des_or_quat(t),QuatInv(J4_curr_or_quat(q)));
+
 %% Tasks
 
 [des_circle_x, des_circle_y, des_circle_z] = circleFromFun(EE_des_pos, t_circle);
@@ -174,13 +182,14 @@ end
 
 showdetails(kuka)
 
-%% SoT
+%% Stack of Tasks
 [t_sot, y_sot] = ode15s(@(t,y) sot(t, y, {J, J4}, {task1, task2}, lambda),...
                        [t0 tf], qinit);
 
 q_sot = y_sot';
 
-sot_fig = figure2('Name', 'SoT with ode15s');
+% EE position solution
+sot_fig = figure2('Name', 'SoT solution with ode15s');
 plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
 title('SoT, $$ \lambda = 10^{-3} $$', 'interpreter', 'latex');
 hold on
@@ -192,8 +201,23 @@ for k = 1:size(q_sot, 2)
     plot3(sot_positions(1), sot_positions(2), sot_positions(3), 'o');
 end
 
+% Joint values
+qsot_fig = figure2('Name', 'SoT joint values');
+sgtitle("SoT joint values");
+n_sot = size(q_sot, 1);
+for i = 1:n_sot
+    qsot_sp = subplot(n_sot, 1, i);
+    hold on
+    
+    plot(t_sot, q_sot(i, :))
+
+    grid
+    xlabel("time [s]");
+    ylabel(q_titles(i))
+end
+
 % Animated plot
-sot2_anim = figure2('Name', 'SoT with ode15s');
+sot2_anim = figure2('Name', 'SoT animation with ode15s');
 for i = 1:size(q_sot, 2)
     % Circle
     plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
@@ -219,9 +243,13 @@ end
 
 sot_err = zeros(6, size(q_sot, 2));
 sot_err4 = zeros(6, size(q_sot, 2));
+sot_orerr = zeros(3, size(q_sot,2));
+sot_orerr4 = zeros(3, size(q_sot,2));
 for k = 1:size(q_sot, 2)
     sot_err(:, k) = EE_pose_errors(t_sot(k), q_sot(:, k));
     sot_err4(:, k) = J4_pose_errors(t_sot(k), q_sot(:, k));
+    sot_orerr(:, k) = rad2deg(quat2eul(quat_for_orerr(t_sot(k), q_sot(:, k))));
+    sot_orerr4(:, k) = rad2deg(quat2eul(quat_for_orerr4(t_sot(k), q_sot(:, k))));
 end
 
 soterr_fig = figure2('Name', 'SoT errors');
@@ -236,8 +264,10 @@ for i = 1:6
         ylabel("error [m]");
 
     else % orientation error
-        plot(t_sot, rad2deg(rem(sot_err(i, :), 2*pi)))
-        plot(t_sot, rad2deg(rem(sot_err4(i, :), 2*pi)))
+%         plot(t_sot, rad2deg(rem(sot_err(i, :), 2*pi)))
+%         plot(t_sot, rad2deg(rem(sot_err4(i, :), 2*pi)))
+        plot(t_sot, sot_orerr(i-3, :))
+        plot(t_sot, sot_orerr4(i-3, :))
 
         ylabel("error [deg]");
     end
@@ -255,7 +285,8 @@ end
 
 q_rp = y_rp';
 
-rp_fig = figure2('Name', 'RP with ode15s');
+% EE position solution
+rp_fig = figure2('Name', 'RP solution with ode15s');
 plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
 title('RP, $$ \lambda = 10^{-3} $$', 'interpreter', 'latex');
 hold on
@@ -267,8 +298,23 @@ for k = 1:size(q_rp, 2)
     plot3(rp_position(1), rp_position(2), rp_position(3), 'o');
 end
 
+% Joint values
+qrp_fig = figure2('Name', 'RP joint values');
+sgtitle("RP joint values");
+n_rp = size(q_rp, 1);
+for i = 1:n_rp
+    qrp_sp = subplot(n_rp, 1, i);
+    hold on
+    
+    plot(t_rp, q_rp(i, :))
+
+    grid
+    xlabel("time [s]");
+    ylabel(q_titles(i))
+end
+
 % Animated plot
-rp_fig2 = figure2('Name', 'RP with ode15s');
+rp_fig2 = figure2('Name', 'RP animation with ode15s');
 for i= 1:size(q_rp, 2)
     plot3(des_circle_x, des_circle_y, des_circle_z, 'k-');
     title('RP, $$ \lambda = 10^{-3} $$', 'interpreter', 'latex');
@@ -292,9 +338,14 @@ end
 
 rp_err = zeros(6, size(q_rp, 2));
 rp_err4 = zeros(6, size(q_rp, 2));
+rp_orerr = zeros(3, size(q_rp, 2));
+rp_orerr4 = zeros(3, size(q_rp, 2));
+
 for k = 1:size(q_rp, 2)
     rp_err(:, k) = EE_pose_errors(t_rp(k), q_rp(:, k));
     rp_err4(:, k) = J4_pose_errors(t_rp(k), q_rp(:, k));
+    rp_orerr(:, k) = rad2deg(quat2eul(quat_for_orerr(t_rp(k), q_rp(:, k))));
+    rp_orerr4(:, k) = rad2deg(quat2eul(quat_for_orerr4(t_rp(k), q_rp(:, k))));
 end
 
 rperr_fig = figure2('Name', 'RP errors');
@@ -310,8 +361,10 @@ for i = 1:6
         ylabel("error [m]");
 
     else % orientation error
-        plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)))
-        plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
+%         plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)))
+%         plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
+        plot(t_rp, rp_orerr(i-3, :))
+        plot(t_rp, rp_orerr4(i-3, :))
 
         ylabel("error [deg]");
 
@@ -331,9 +384,13 @@ q_rprou = y_rprou';
 
 rprou_err = zeros(6, size(q_rprou, 2));
 rprou_err4 = zeros(6, size(q_rprou, 2));
+rprou_orerr = zeros(3, size(q_rprou, 2));
+rprou_orerr4 = zeros(3, size(q_rprou, 2));
 for k = 1:size(q_rprou, 2)
     rprou_err(:, k) = EE_pose_errors(t_rprou(k), q_rprou(:, k));
     rprou_err4(:, k) = J4_pose_errors(t_rprou(k), q_rprou(:, k));
+    rprou_orerr(:, k) = rad2deg(quat2eul(quat_for_orerr(t_rprou(k), q_rprou(:, k))));
+    rprou_orerr4(:, k) = rad2deg(quat2eul(quat_for_orerr4(t_rprou(k), q_rprou(:, k))));
 end
 
 rprou_poserr_fig = figure2('Name', 'RP (w/ rank-one update) EE errors');
@@ -349,8 +406,10 @@ for i = 1:6
         ylabel("error [m]");
 
     else % orientation error
-        plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)))
-        plot(t_rprou, rad2deg(rem(rprou_err(i, :), 2*pi)))
+%         plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)))
+%         plot(t_rprou, rad2deg(rem(rprou_err(i, :), 2*pi)))
+        plot(t_rp, rp_orerr(i-3, :))
+        plot(t_rprou, rprou_orerr(i-3, :))
 
         ylabel("error [deg]");
 
@@ -361,6 +420,12 @@ for i = 1:6
     xlabel("time [s]");
     title(error_titles(i));
 end
+% 
+% for i = 1:6
+%     subplot(6, 1, i);
+%     xlim([1.5, 2.5])
+% end
+
 
 rprou_orerr_fig = figure2('Name', 'RP (w/ rank-one update) J4 errors');
 sgtitle("RP (w/ rank-one update) J4 errors");
@@ -375,8 +440,10 @@ for i = 1:6
         ylabel("error [m]");
 
     else % orientation error
-        plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
-        plot(t_rprou, rad2deg(rem(rprou_err4(i, :), 2*pi)))
+%         plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
+%         plot(t_rprou, rad2deg(rem(rprou_err4(i, :), 2*pi)))
+        plot(t_rp, rp_orerr4(i-3, :))
+        plot(t_rprou, rprou_orerr4(i-3, :))
 
         ylabel("error [deg]");
 
@@ -387,6 +454,11 @@ for i = 1:6
     xlabel("time [s]");
     title(error_titles(i));
 end
+
+% for i = 1:6
+%     subplot(6, 1, i);
+%     xlim([1.5, 2.5])
+% end
 
 %% E-E error comparison
 
@@ -418,9 +490,12 @@ for i = 4:6
     sp_orerr = subplot(3, 1, i-3);
     hold on
 
-    plot(t_sot, rad2deg(rem(sot_err(i, :), 2*pi)));
-    plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)));
-    plot(t_rprou, rad2deg(rem(rprou_err(i, :), 2*pi)));
+%     plot(t_sot, rad2deg(rem(sot_err(i, :), 2*pi)));
+%     plot(t_rp, rad2deg(rem(rp_err(i, :), 2*pi)));
+%     plot(t_rprou, rad2deg(rem(rprou_err(i, :), 2*pi)));
+    plot(t_sot, sot_orerr(i-3, :))
+    plot(t_rp, rp_orerr(i-3, :))
+    plot(t_rprou, rprou_orerr(i-3, :))
 
     grid
     legend("SoT", "RP", "RP-ROU");
@@ -428,7 +503,7 @@ for i = 4:6
     ylabel("error [deg]");
     title(error_titles(i));
 end
-
+% 
 % for i=1:3
 %     subplot(3,1,i);
 %     xlim([1.5, 2.5])
@@ -464,9 +539,12 @@ for i = 4:6
     sp_orerr4 = subplot(3, 1, i-3);
     hold on
     
-    plot(t_sot, rad2deg(rem(sot_err4(i, :), 2*pi)))
-    plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
-    plot(t_rprou, rad2deg(rem(rprou_err4(i, :), 2*pi)))
+%     plot(t_sot, rad2deg(rem(sot_err4(i, :), 2*pi)))
+%     plot(t_rp, rad2deg(rem(rp_err4(i, :), 2*pi)))
+%     plot(t_rprou, rad2deg(rem(rprou_err4(i, :), 2*pi)))
+    plot(t_sot, sot_orerr4(i-3, :))
+    plot(t_rp, rp_orerr4(i-3, :))
+    plot(t_rprou, rprou_orerr4(i-3, :))
 
     grid
     legend("SoT", "RP", "RP-ROU");
@@ -479,12 +557,15 @@ end
 %     subplot(3,1,i);
 %     xlim([1.5, 2.5])
 % end
+
 %% Usefule notes
+
+% Computational time estimation on 10 sample executions of all the IK
+% functions
 time_loops = 10;
 sot_times = zeros(1, time_loops);
 rp_times = zeros(1, time_loops);
 rprou_times = zeros(1, time_loops);
-
 for count = 1:time_loops
     tic
     [~, ~] = ode15s(@(t,y) sot(t, y, {J, J4}, {task1, task2}, lambda),...
@@ -502,27 +583,120 @@ for count = 1:time_loops
 
 end
 
+% Summarizing info in a table
 methods = ["SoT"; "RP"; "RP-ROU"];
 comp_time = [mean(sot_times); mean(rp_times); mean(rprou_times)];
 mean_sot_error = mean(sot_err, 2);
+mean_sot_orerror = mean(sot_orerr, 2);
 mean_rp_error = mean(rp_err, 2);
+mean_rp_orerror = mean(rp_orerr, 2);
 mean_rprou_error = mean(rprou_err, 2);
+mean_rprou_orerror = mean(rprou_orerr, 2);
 max_sot_error = max(sot_err, [], 2);
+max_sot_orerror = max(sot_orerr, [], 2);
 max_rp_error = max(rp_err, [], 2);
+max_rp_orerror = max(rp_orerr, [], 2);
 max_rprou_error = max(rprou_err, [], 2);
+max_rprou_orerror = max(rprou_orerr, [], 2);
 
 table(comp_time, ...
     [mean_sot_error(1:3)'; mean_rp_error(1:3)'; mean_rprou_error(1:3)'], ...
-    [rad2deg(rem(mean_sot_error(4:6)', 2*pi)); 
-        rad2deg(rem(mean_rp_error(4:6)', 2*pi)); 
-        rad2deg(rem(mean_rprou_error(4:6)', 2*pi))], ...
+    [mean_sot_orerror(1:3)'; mean_rp_orerror(1:3)'; mean_rprou_orerror(1:3)'], ...
     [max_sot_error(1:3)'; max_rp_error(1:3)'; max_rprou_error(1:3)'], ...
-    [rad2deg(rem(max_sot_error(4:6)', 2*pi));
-        rad2deg(rem(max_rp_error(4:6)', 2*pi)); 
-        rad2deg(rem(max_rprou_error(4:6)', 2*pi))], ...
+    [max_sot_orerror(1:3)'; max_rp_orerror(1:3)'; max_rprou_orerror(1:3)'], ...
      'VariableNames', ...
      {'Computational time', 'Mean position errors (x y z)', ...
      'Mean orientation errors (x y z)', 'Max position errors (x y z)', ...
      'Max orientation errors (x y z)'}, ...
      'RowNames', methods)
-   
+
+% Functions to compare conversions
+myconv_euler_error = @(t,q) MatToRPY(QuatToMat(quat_for_orerr(t, q)));
+matlabconv_euler_error = @(t,q) quat2eul(quat_for_orerr(t,q));
+
+quat_or_error = zeros(4, size(q_rp, 2));
+euler_ownfun = zeros(3, size(q_rp, 2));
+euler_matlab = zeros(3, size(q_rp, 2));
+desired_euler = zeros(3, size(q_rp, 2));
+desired_quat = zeros(4, size(q_rp, 2));
+current_euler = zeros(3, size(q_rp, 2));
+current_quat = zeros(4, size(q_rp, 2));
+for k = 1:size(q_rp, 2)
+    quat_or_error(:, k) = quat_for_orerr(t_rp(k), q_rp(:, k));
+    euler_ownfun(:, k) = myconv_euler_error(t_rp(k), q_rp(:, k));
+    euler_matlab(:, k) = matlabconv_euler_error(t_rp(k), q_rp(:, k));
+    desired_euler(:, k) = EE_des_or(t_rp(k));
+    desired_quat(:,k) = EE_des_or_quat(t_rp(k));
+    current_quat(:, k) = EE_curr_or_quat(q_rp(:, k));
+    current_euler(:,k) = quat2eul(EE_curr_or_quat(q_rp(:, k))); % default sequence: ZYX
+end
+
+% Inspecting the orientation error converted to Euler angles with different
+% methods, to check for computation errors
+q2e_fig = figure2('Name', 'RP orientation errors analysis');
+sgtitle("RP orientation errors analysis");
+for i = 1:3
+    sp_rp = subplot(3, 1, i);
+    hold on
+
+    plot(t_rp, rad2deg(rem(euler_ownfun(i, :), 2*pi)))
+    plot(t_rp, rad2deg(rem(euler_matlab(i, :), 2*pi)))
+
+    % Directly converting the array part of the quaternion representing the 
+    % orientation errors, as mistakenly done before, is clearly wrong
+%     plot(t_rp, rad2deg(rem(rp_err(i+3, :), 2*pi))) 
+
+    ylabel("error [deg]");
+
+    grid
+    legend("Mine", "MATLAB", "Rad2Deg of quaternion")
+    xlabel("time [s]");
+    title(error_titles(i));
+end
+
+% Inspecting the quaternion that represents the orientation error
+quat_fig = figure2('Name', 'Quaternions for RP orientation error');
+sgtitle("Quaternion error analysis");
+for i = 1:4
+    sp_rp = subplot(4, 1, i);
+    hold on
+
+    plot(t_rp, quat_or_error(i, :))
+    
+    grid
+    xlabel("time [s]");
+    legend("Quaternion error")
+    ylabel(quat_labels(i));
+end
+
+% Inspecting the desired/actual Euler angles
+ordes_fig = figure2('Name', 'Desired RPY Euler angles');
+sgtitle("Euler angles analysis");
+for i = 1:3
+    sp_rp = subplot(3, 1, i);
+    hold on
+
+    plot(t_rp, rad2deg(rem(desired_euler(i, :), 2*pi)))
+    plot(t_rp, rad2deg(rem(current_euler(i, :),2*pi)))
+    
+    grid
+    xlabel("time [s]");
+    legend("Desired", "Actual")
+    ylabel(euler_labels(i));
+end
+
+% Inspecting the desired/actual orientation quaternions
+orquat_fig = figure2('Name', 'Desired quaternion angles');
+sgtitle("Quaternion analysis");
+for i = 1:4
+    sp_rp = subplot(4, 1, i);
+    hold on
+
+    plot(t_rp, desired_quat(i, :))
+    plot(t_rp, current_quat(i, :))
+    
+    grid
+    xlabel("time [s]");
+    legend("Desired", "Current")
+    ylabel(quat_labels(i));
+end
