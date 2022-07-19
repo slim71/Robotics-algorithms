@@ -1,7 +1,11 @@
 %% Preparations
 clc; close all; clear all
 
-syms q
+qlabels = ["$q_{1}$"; "$q_{2}$"; "$q_{3}$"; "$q_{4}$"; "$q_{5}$"; "$q_{6}$"];
+qdlabels = ["$\dot{q_{1}}$"; "$\dot{q_{2}}$"; "$\dot{q_{3}}$"; 
+            "$\dot{q_{4}}$"; "$\dot{q_{5}}$"; "$\dot{q_{6}}$"];
+qddlabels = ["$\ddot{q_{1}}$"; "$\ddot{q_{2}}$"; "$\ddot{q_{3}}$"; 
+             "$\ddot{q_{4}}$"; "$\ddot{q_{5}}$"; "$\ddot{q_{6}}$"];
 
 %% Importing needed robot model
 
@@ -113,23 +117,12 @@ abbirb.links(6).I = diag([0, 0, 0]);
 
 n_joint = size(abbirb.links, 2);
 
-% Proportional and derivative gains
-% TODO
-Kp = 1 * diag([1 1 1 1 1 1]);
-kd = 1 * diag([1 1 1 1 1 1]);
-
 % Time definitions, in [s]
 % TODO: check, maybe to change
 t_init = 0;
 t_end = 10;
 delta_t = 0.1;
 t = t_init:delta_t:t_end;
-
-% TODO: needed?
-Q	= zeros(n_joint, length(t));
-dQ	= zeros(n_joint, length(t));
-ddQ = zeros(n_joint, length(t));
-TAU = zeros(n_joint, length(t));
 
 %% Robot init
 
@@ -145,7 +138,6 @@ abbirb.plot(q0);
 fk = abbirb.fkine(q0);
 
 %% Trajectory
-% TODO: is there something like ctraj for circles?
 
 % Circumference parameters; generated based on the initial EE position
 radius = 300; % [mm]
@@ -180,28 +172,10 @@ des_pose = [x_traj', y_traj', z_traj', des_theta', des_phi' des_psi'];
 
 % Compute desired configuration via IK solution
 q_des = desiredConfiguration(q0, des_pose, abbirb);
+dq_des	= gradient(q_des)/delta_t;
+ddq_des = gradient(dq_des)/delta_t;
 
 des_dif = figure2('Name', 'Desired behavior');
 for i = 1:size(q_des, 2)
     abbirb.plot(q_des(:, i)')
 end
-
-% TODO: needed?
-dq_des	= gradient(q_des)/delta_t;
-ddq_des = gradient(dq_des)/delta_t;
-% General function to use for both dq and ddq (changing input array)
-derivation = @(array) gradient(array)/delta_t; % or gradient(array, delta_t)
-
-%% Needed function for dynamics
-
-% Matrices initialization
-% These are using row vectors
-InertiaMatrix = @(q) abbirb.inertia(q);
-CoriolisMatrix = @(q, dq) abbirb.coriolis(q, dq);
-GravityMatrix = @(q) abbirb.gravload(q);
-
-% err = @(q) (q_des() - q);
-
-%% Simulation
-
-% for i = 1:
