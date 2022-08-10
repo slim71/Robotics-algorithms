@@ -6,6 +6,7 @@ qdlabels = ["$\dot{q_{1}}$"; "$\dot{q_{2}}$"; "$\dot{q_{3}}$";
             "$\dot{q_{4}}$"; "$\dot{q_{5}}$"; "$\dot{q_{6}}$"];
 qddlabels = ["$\ddot{q_{1}}$"; "$\ddot{q_{2}}$"; "$\ddot{q_{3}}$"; 
              "$\ddot{q_{4}}$"; "$\ddot{q_{5}}$"; "$\ddot{q_{6}}$"];
+eeaxislabels = ["x [mm]"; "y [mm]"; "z [mm]"; "x [deg]"; "y [deg]"; "z [deg]"];
 
 %% Importing needed robot model
 
