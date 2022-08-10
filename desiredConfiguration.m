@@ -5,20 +5,15 @@ function des_q = desiredConfiguration(qinit, pose, robot)
     n_points = size(pose, 1);
 
     % Init parameters    
-    des_q = zeros(n_joints, n_points+1);
+    des_q = zeros(n_joints, n_points);
     des_q(:, 1) = qinit;
 
-    for i = 2:n_points+1
+    for i = 2:n_points
         pos = pose(i-1, 1:3);
         rotmat = EulToMat(pose(i-1, 4:6), "ZYX");
         hom_SE3 = SE3(rotmat, pos);
     
-        try
-            des_q(:, i) = robot.ikine(hom_SE3, 'q0', des_q(:, i-1)');
-        catch
-            disp("i = " + i)
-            return
-        end
+        des_q(:, i) = robot.ikine(hom_SE3, 'q0', des_q(:, i-1)');
     end
 
 end
