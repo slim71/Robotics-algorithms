@@ -1,4 +1,4 @@
-function ret_array = CT_odefun(t, y, des_array, robot)
+function ret_array = CT_odefun(t, y, des_array, Kp, Kd, robot)
 
     n = size(y, 1)/2; % or size(des_array, 2)
 
@@ -9,13 +9,12 @@ function ret_array = CT_odefun(t, y, des_array, robot)
     dqds = des_array(n+1:2*n)';
     ddqds = des_array(2*n+1:end);
     
+    % Robot dynamics matrices
     M = robot.inertia(qs);
     C = robot.coriolis(qs, dqs);
     G = robot.gravload(qs);
 
-    Kp = 20 * diag([1 1 1 1 1 1]);
-    Kd = 10 * diag([1 1 1 1 1 1]);
-
+    % Errors
     e = (qds - qs);
     de = (dqds - dqs);
 
