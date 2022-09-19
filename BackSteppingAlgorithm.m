@@ -15,9 +15,9 @@ result_bs_q = zeros(size(q0, 2), length(t));
 result_bs_dq = zeros(size(q0, 2), length(t));
 result_bs_ddq = zeros(size(q0, 2), length(t));
 
-Kg = 100 * diag([1 1 1 1 1 1]);
-Kd = 100 * diag([1 1 1 1 1 1]);
-Kp = 100 * diag([1 1 1 1 1 1]);
+Kg = 10 * diag([1 1 1 1 1 1]);
+Kd = 10 * diag([1 1 1 1 1 1]);
+Kp = 10 * diag([1 1 1 1 1 1]);
 
 q0s = [q0'; dq0'];
 for i = 1:length(t)
