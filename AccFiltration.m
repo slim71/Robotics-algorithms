@@ -3,6 +3,8 @@ function minDelta = AccFiltration(delta, delta0, vars)
 %   Delta-invariant distribution containing Delta0 (denoted <Delta, Delta0>).
 %   This operation stops if, for some k, Delta_k and Delta_k+1 are
 %   nonsingular at a point x and dim(Delta_k(x)) = dim(Delta_k+1(x)).
+%   A distribution is said to be 'nonsingular' if, for all x in X, 
+%   dim(Delta(x)) = n (system dimension).
 %   Finally, since this computes a distribution, the function uses the
 %   column range of a space to built the result.
     

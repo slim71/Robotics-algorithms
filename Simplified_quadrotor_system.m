@@ -7,6 +7,7 @@ syms x y z theta phi psi real
 % [u v w] : quadrotor linear velocities
 % [p q r] : quadrotor angular velocities
 syms u v w p q r real
+syms xd yd zd real
 
 % Inertia matrix
 syms Ix Iy Iz positive real
@@ -27,7 +28,7 @@ syms f_t real
 syms m positive real
 
 % System state array
-state = [x y z phi theta psi p q r u v w];
+state = [x y z psi theta phi xd yd zd p q r];
 
 % Parameters array
 pars = [Ix Iy Iz m];
@@ -70,33 +71,30 @@ Wdot = q * u - p * v + g * cos(theta) * cos(phi) + (fw_z - f_t) / m
 
 % Control input field
 % Considering tau_i, tau_wi, fw_i, ft as separate inputs
-% Reminder: state = [x y z phi theta psi p q r u v w];
-inputs = [tau_x tau_y tau_z tau_wx tau_wy tau_wz fw_x fw_y fw_z f_t];
-g1 = [0 0 0 0 0 0 1/Ix 0 0 0 0 0]';
-g2 = [0 0 0 0 0 0 0 1/Iy 0 0 0 0]';
-g3 = [0 0 0 0 0 0 0 0 1/Iz 0 0 0]';
-g4 = [0 0 0 0 0 0 1/Ix 0 0 0 0 0]';
-g5 = [0 0 0 0 0 0 0 1/Iy 0 0 0 0]';
-g6 = [0 0 0 0 0 0 0 0 1/Iz 0 0 0]';
-g7 = [0 0 0 0 0 0 0 0 0 1/m 0 0]';
-g8 = [0 0 0 0 0 0 0 0 0 0 1/m 0]';
-g9 = [0 0 0 0 0 0 0 0 0 0 0 1/m]';
-g10 = [0 0 0 0 0 0 0 0 0 0 0 -1/m]';
-G = [g1 g2 g3 g4 g5 g6 g7 g8 g9 g10];
+% inputs = [tau_x tau_y tau_z tau_wx tau_wy tau_wz fw_x fw_y fw_z f_t];
+syms u1 u2 u3 u4
+g7_1 = - 1/m * (sin(phi)*sin(psi) + cos(phi)*cos(psi)*sin(theta));
+g8_1 = - 1/m * (sin(phi)*cos(psi) - cos(phi)*sin(psi)*sin(theta));
+g9_1 = - 1/m * cos(phi) * cos(psi);
+g1 = [0 0 0 0 0 0 g7_1 g8_1 g9_1 0 0 0]';
+g2 = [0 0 0 0 0 0 0 0 0 1/Ix 0 0]';
+g3 = [0 0 0 0 0 0 0 0 0 0 1/Iy 0]';
+g4 = [0 0 0 0 0 0 0 0 0 0 0 1/Iz]';
+G = [g1 g2 g3 g4];
 
 % Drift vector field
-f = [w * (sin(phi) * sin(psi) + cos(phi) * cos(psi) * sin(theta)) - v * (cos(phi) * sin(psi) - cos(psi) * sin(phi) * sin(theta)) + u * (cos(psi) * cos(theta));
-     v * (cos(phi) * cos(psi) + sin(phi) * sin(psi) * sin(theta)) - w * (cos(psi) * sin(phi) - cos(phi) * sin(psi) * sin(theta)) + u * (cos(theta) * sin(psi));
-     w * (cos(phi) * cos(theta)) - u * (sin(theta)) + v * (cos(theta) * sin(phi));
-     p + r * (cos(phi) * tan(theta)) + q * (sin(phi) * tan(theta));
-     q  * cos(phi) - r * sin(phi);
+f = [xd;
+     yd;
+     zd;
      r * cos(phi) / cos(theta) + q * sin(phi) / cos(theta);
+     q  * cos(phi) - r * sin(phi);
+     p + r * (cos(phi) * tan(theta)) + q * (sin(phi) * tan(theta));
+     0;
+     0;
+     g;
      (Iy - Iz) / Ix * r * q;
      (Iz - Ix) / Iy * p * r;
-     (Ix - Iy) / Iz * p * q;
-     r * v - q * w - g * sin(theta);
-     p * w - r * u + g * sin(phi) * cos(theta);
-     q * u - p * v + g * cos(theta) * cos(phi)
+     (Ix - Iy) / Iz * p * q
     ];
 
 % Distributions
@@ -104,4 +102,4 @@ delta0 = G;
 delta = [f G];
 
 % Output functions
-chosen_output = [x; y; z; theta; phi; psi; p; q; r; u];
+chosen_output = [x; y; z; psi];
