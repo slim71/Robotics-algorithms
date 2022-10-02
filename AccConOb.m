@@ -1,5 +1,7 @@
 %% Setting up
-Quadrotor_system
+clc; clear all; close all;
+
+Inertia_Wheel_Pendulum
 
 %% Small time local accessibility
 % To study the stla of the system we use the Chow Filtration theorem, based on 
@@ -42,8 +44,8 @@ else
 end
 %% Local observability
 
-fprintf("We choose the quadrotor position as output of the system: \n")
-h = [x, y, z, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+fprintf("As output of the system we choose: \n")
+h = chosen_output 
 
 dh = jacobian(h, state);
 gamma0 = dh;

@@ -1,8 +1,7 @@
 %% Setting up
 clc; clear all; close all;
 
-% Quadrotor_system
-Simplified_quadrotor_system
+Inertia_Wheel_Pendulum
 
 %% MIMO conditions
 
