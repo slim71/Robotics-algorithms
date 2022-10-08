@@ -24,10 +24,10 @@ else
     delta_weak = AccFiltration(delta, delta, state);
 
     if rank(subs(delta_weak, [state, pars], [state0, pars_num])) == length(state)
-        fprintf("The system is wla \n")
+        fprintf("The system is wla. \n")
         is_stla = true;
     else
-        fprintf("The system is not wla \n")
+        fprintf("The system is not wla. \n")
     end
     
 end
@@ -37,7 +37,8 @@ end
 [is_stlc, matched_cond] = STLCCheck(f, G, state, pars, state0, pars_num);
 
 if is_stlc
-    fprintf("The system is stlc \n")
+    fprintf("The Local Controllability condition %d was met, so the " + ...
+            "system is stlc. \n", matched_cond);
     is_stlc = true;
 else
     fprintf("The system is not stlc \n")

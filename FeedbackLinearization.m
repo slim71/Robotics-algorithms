@@ -1,102 +1,145 @@
 %% Setting up
 clc; clear all; close all;
+digits 4;
 
 Inertia_Wheel_Pendulum
 
-%% MIMO conditions
-
 F_nopars = subs(f, pars, pars_num);
+F_nopars_fric = subs(f_wfriction, pars, pars_num);
 G_nopars = subs(G, pars, pars_num);
 
-%% I/O feedback linearization
+%% I/O feedback linearization analysis
 
-[r_mat, poss_epsi, Gamma_mat, E_mat] = MIMOFL(F_nopars, G_nopars, chosen_output, state, state0);
+[rel_deg, Lf_total, Lg_total] = SISOFL(F_nopars, G_nopars, ...
+                       subs(chosen_output, pars, pars_num), state, state0);
 
-% Compute relative degree for each output
-rel_degrees = zeros(size(r_mat, 1), 1);
-for i = 1:size(r_mat, 1)
-    r_app = r_mat(i, :);
+fprintf("The system has relative degree %d and the state space has " + ...
+    "size %d.\n", rel_deg, length(state));
 
-    rd = min(r_app(r_app>0));
-    if isempty(rd) % No definite relative degree for this output
-        rel_degrees(i, 1) = abs(max(r_app(r_app<0)));
-    else % At least a definite relative degree for this output
-        rel_degrees(i, 1) = rd;
-    end
-end
-
-E = subs(E_mat, state, state0);
-if rank(E) == min(size(E))
-    fprintf("E is full-rank, so it's invertible. \n");
-
-    % Custom formatter for fprintf
-    outputstr = repmat('%i ', 1, size(rel_degrees, 1)-1);
-    outputstr = [outputstr '%i'];
-
-    fprintf("Then its relative degree is [" + outputstr + ...
-        "] (total: %d). \n", rel_degrees.', sum(rel_degrees));
+if rel_deg >= length(state)
+    fprintf("So we can achieve a complete decoupling feedback " + ...
+        "linearization. \n")
 else
-    fprintf("E is not invertible (rank: %d, dimensions: [%d %d]). \n", ...
-            rank(E), size(E));
-    fprintf("So it does not have a definite relative degree.\n");
+    fprintf("So a complete decoupling feedback linearization is not " + ...
+        "possible. We must proceed in another way. \n")
 end
 
-%% Dynamic feedback linearization
-disp(E_mat)
-fprintf("Looking once more at the symbolic versione of E, we see " + ...
-        "that the 2nd column is comprised of all 0s.\n" + ...
-        "This means the second input is in some way 'slower' than " + ...
-        "the others. \n" + ...
-        "A possible solution, explored here, is to slow down the " + ...
-        "other inputs with one or more integrators.\n");
+%% Complete feedback linearization
 
-fprintf("Here we set the first input equal to the output of a " + ...
-        "double integrator driven by the u1_bar:" + ...
-        "u1 = mu;  mu_dot = nu; nu_dot = u1_bar \n");
-fprintf("Now u1 is not an input anymore, but rather a part of the " + ...
-        "internal state. In its place, u1_bar becomes the new input.\n");
+xi_value = Lf_total(1:end-1);
+alpha = - Lf_total(end) / Lg_total(end);
+beta = 1 / Lg_total(end);
 
-syms zeta xi
-aug_state = [state zeta xi];
-aug_state0 = [state0 0 0];
-aug_f = [F_nopars(1:6); g7_1; g8_1; g9_1; F_nopars(10:end); xi; 0];
-g1_bar = [zeros(size(g1, 1), 1); 0; 1];
-aug_g2 = subs([g2; 0; 0], pars, pars_num);
-aug_g3 = subs([g3; 0; 0], pars, pars_num);
-aug_g4 = subs([g4; 0; 0], pars, pars_num);
-aug_G = [g1_bar aug_g2 aug_g3 aug_g4];
+fprintf("We can perform the change of variables phi(x) = ");
+xi_value.'
 
-[aug_r, aug_poss_epsi, aug_Gamma, aug_E] = MIMOFL(aug_f, aug_G, chosen_output, aug_state, aug_state0);
+fprintf("The feedback linearization we look for is then");
+u_fl = vpa(alpha + beta * v)
+fprintf("and following the above results we have y^(r) = v \n");
 
-% Compute new relative degree for each output
-aug_rel_degrees = zeros(size(aug_r, 1), 1);
-for i = 1:size(aug_r, 1)
-    r_app = aug_r(i, :);
+fprintf("We then have the new system: \n");
+syms xi [rel_deg 1]
+syms xi_dot [rel_deg 1]
+syms doty_r
+new_state = xi;
+new_state_dot = xi_dot;
+new_f = [vpa(xi_value(2:end)).'; vpa(Lf_total(end))];
+new_g = [zeros(rel_deg-1, 1); vpa(Lg_total(end))];
+% xi_dot = new_f + new_g * v
+xi_dot1 = new_f(1) + new_g(1) * doty_r
+xi_dot2 = new_f(2) + new_g(2) * doty_r
+xi_dot3 = new_f(3) + new_g(3) * doty_r
+xi_dot4 = new_f(4) + new_g(4) * doty_r
 
-    rd = min(r_app(r_app>0));
-    if isempty(rd) % No definite relative degree for this output
-        aug_rel_degrees(i, 1) = abs(max(r_app(r_app<0)));
-    else % At least a definite relative degree for this output
-        aug_rel_degrees(i, 1) = rd;
-    end
+fprintf("From here on out, we could add another feedback control to " + ...
+    "stabilize the system and give it the eigenvalues we want, \nor we " + ...
+    "could also design a particular controller for what we're trying " + ...
+    "to achieve. \n");
+
+%% Partial feedback linearization
+
+fprintf("\n");
+
+[r_fric, Lf_fric, Lg_fric] = SISOFL(F_nopars_fric, G_nopars, ...
+                       subs(output_wfriction, pars, pars_num), state, state0);
+
+fprintf("Considering frictions in the output, the system has " + ...
+    "relative degree %d; the state space is still of " + ...
+    "size %d.\n", r_fric, length(state));
+
+if r_fric >= length(state)
+    fprintf("We can still achieve a complete decoupling feedback " + ...
+        "linearization. \n")
+else
+    fprintf("Now a complete decoupling feedback linearization is not " + ...
+        "possible. We must proceed in another way. \n")
 end
 
-% aug_E is not full-rank only because of the limit imposed on the symbolic
-% calculations in SISOFL [line 12] (withouth them my PC would not finish
-% computing higher order derivatives with symbolic calculations
+xi_fric = Lf_fric(1:end-1);
 
-% Custom formatter for fprintf
-outputstr = repmat('%i ', 1, size(aug_rel_degrees, 1)-1);
-outputstr = [outputstr '%i'];
+fprintf("To complete the variable change we choose: \n");
 
-fprintf("The relative degree of the newly computed E is [" ...
-        + outputstr + "] (total: %d). \n", aug_rel_degrees.', ...
-        sum(aug_rel_degrees));
+syms zeta1 zeta2
+zeta1_fric = a11 * fp + theta2;
+zeta2_fric = thetad2;
+zeta_fric = [zeta1_fric, zeta2_fric];
 
-%%
+fprintf("It can be easily checked that these are indipendent from " + ...
+    "the xi variables already established, and among themselves. \n" + ...
+    "We have \nrank([[xi1;x2], [zeta1, zeta2]])=%d \n and \n" + ...
+    "det(phi)|_0=det([xi; zeta])|_0=%d \n", ...
+    rank([xi_fric.',[theta1+theta2; theta2]]), ...
+    subs(det(jacobian([xi_fric, zeta_fric], state)), state, state0));
 
-phi = [x(1);
-    x(3)-x(2)^3;
-    x(2)];
+fprintf("Moreover: \n")
+Lg_zeta1 = ScalarFDerivative(G_nopars, zeta1_fric, state)
+Lg_zeta2 = ScalarFDerivative(G_nopars, zeta2_fric, state)
 
-det(subs(jacobian(phi, [x(1),x(2),x(3)]), [x(1),x(2),x(3)], [0,0,0]))
+phi = [xi_fric, zeta_fric];
+
+fprintf("After the change of variables wee have \n");
+syms xi_dot [1 2]
+xis = [xi(1); xi(2)];
+xi1_dot = Lf_fric(2)
+xi2_dot = Lf_fric(end) + Lg_fric(end) * u
+
+a = Lg_fric(end);
+b = Lf_fric(end);
+
+fprintf("For the partial feedback linearization we then set: \n");
+xi_dot2 = v
+fprintf("as new input and the feedback control as: \n");
+u = - b/a + 1/a * v
+
+Lf_zeta1 = ScalarFDerivative(F_nopars_fric, zeta1_fric, state);
+Lf_zeta2 = ScalarFDerivative(F_nopars_fric, zeta2_fric, state);
+Lf_zeta1_0 = subs(Lf_zeta1, xi_fric, [0, 0]);
+Lf_zeta2_0 = subs(Lf_zeta2, xi_fric, [0, 0]);
+
+r = r_fric; % = length(xi_fric)
+n = length(state);
+m = length(zeta_fric);
+q = [Lf_zeta1; Lf_zeta2];
+p = [Lg_zeta1; Lg_zeta2];
+A = [[zeros(r-1, 1), eye(r-1)]; zeros(1, r)];
+B = [zeros(r-1, 1); 1];
+C = [1 zeros(1, r-1)];
+
+% Linearized system
+dyn = A*xis + B*v;
+out = C*xis;
+
+%% 0-dynamics
+fprintf("After achieving a partial feedback linearization, we must " + ...
+    "make sure the linearized system is also internally stable. \n");
+
+fprintf("To ensure y(t)=0 it must be zeta_dot = q(0, eta) for all zeta_0\n");
+
+q0 = subs(q, xi_fric, [0,0]);
+zeta1_dot = q0(1) + p(1)
+zeta2_dot = q0(2) + p(2)
+
+fprintf("Since this is not the case, the feedback linearization " + ...
+    "control does not make the non-linear system both internally " + ...
+    "and externally stable. \nNo conclusion can be made with only this " + ...
+    "theorem.\n");

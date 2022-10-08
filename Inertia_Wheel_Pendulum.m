@@ -7,8 +7,8 @@ syms thetad [1 2] real
 % Inertia matrix
 syms J1 J2 positive real
 
-% tau
-syms u
+% 
+syms u v
 
 %  mass
 syms mc m11 m12 m2 positive real
@@ -17,6 +17,8 @@ syms mc m11 m12 m2 positive real
 syms l [1 2] positive real
 
 syms cp1 cp2 real
+
+syms fp
 
 % System state array
 state = [theta1 thetad1 theta2 thetad2];
@@ -49,21 +51,6 @@ is_lo = false;
 %% Initial conditions
 state0 = [0 0 0 0];
 
-%% Dynamic system
-fprintf("System considered:")
-% Xdot = w * (sin(phi) * sin(psi) + cos(phi) * cos(psi) * sin(theta)) - v * (cos(phi) * sin(psi) - cos(psi) * sin(phi) * sin(theta)) + u * (cos(psi) * cos(theta))
-% Ydot = v * (cos(phi) * cos(psi) + sin(phi) * sin(psi) * sin(theta)) - w * (cos(psi) * sin(phi) - cos(phi) * sin(psi) * sin(theta)) + u * (cos(theta) * sin(psi))
-% Zdot = w * (cos(phi) * cos(theta)) - u * (sin(theta)) + v * (cos(theta) * sin(phi))
-% Phidot = p + r * (cos(phi) * tan(theta)) + q * (sin(phi) * tan(theta))
-% Thetadot = q * cos(phi) - r * sin(phi)
-% Psidot = r * cos(phi) / cos(theta) + q * sin(phi) / cos(theta)
-% Pdot = (Iy - Iz) / Ix * r * q + (tau_x + tau_wx) / Ix
-% Qdot = (Iz - Ix) / Iy * p * r + (tau_y + tau_wy) / Iy
-% Rdot = (Ix - Iy) / Iz * p * q + (tau_z + tau_wz) / Iz
-% Udot = r * v - q * w - g * sin(theta) + fw_x / m
-% Vdot = p * w - r * u + g * sin(phi) * cos(theta) + fw_y / m
-% Wdot = q * u - p * v + g * cos(theta) * cos(phi) + (fw_z - f_t) / m
-
 %% Vector fields and distributions describing the system
 
 D = (m11 * l1^2 + (m12 + m2) * l2^2 + J1) * J2;
@@ -82,6 +69,11 @@ f = [thetad1;
     thetad2;
     a21 * mc * g * sin(theta1) + a21
     ];
+f_wfriction = [thetad1;
+    a11 * mc * g * sin(theta1) - a11 * fp;
+    thetad2;
+    a21 * mc * g * sin(theta1) - a21 * fp
+    ];
 
 % Distributions
 delta0 = G;
@@ -89,3 +81,4 @@ delta = [f G];
 
 % Output functions
 chosen_output = a22 * theta1 + a11 * theta2;
+output_wfriction = theta1;
