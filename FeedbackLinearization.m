@@ -8,138 +8,155 @@ F_nopars = subs(f, pars, pars_num);
 F_nopars_fric = subs(f_wfriction, pars, pars_num);
 G_nopars = subs(G, pars, pars_num);
 
-%% I/O feedback linearization analysis
+%% Complete feedback linearization
+fprintf("\nCOMPLETE FEEDBACK LINEARIZATION\n");
 
-[rel_deg, Lf_total, Lg_total] = SISOFL(F_nopars, G_nopars, ...
-                       subs(chosen_output, pars, pars_num), state, state0);
+[rel_deg, Lf_total, Lg_total] = SISOFL(f, G, chosen_output, state, state0);
 
-fprintf("The system has relative degree %d and the state space has " + ...
+fprintf("\nThe system has relative degree %d and the state space has " + ...
     "size %d.\n", rel_deg, length(state));
 
 if rel_deg >= length(state)
-    fprintf("So we can achieve a complete decoupling feedback " + ...
+    fprintf("\nSo we can achieve a complete decoupling feedback " + ...
         "linearization. \n")
 else
-    fprintf("So a complete decoupling feedback linearization is not " + ...
+    fprintf("\nSo a complete decoupling feedback linearization is not " + ...
         "possible. We must proceed in another way. \n")
 end
-
-%% Complete feedback linearization
 
 xi_value = Lf_total(1:end-1);
 alpha = - Lf_total(end) / Lg_total(end);
 beta = 1 / Lg_total(end);
 
-fprintf("We can perform the change of variables phi(x) = ");
-xi_value.'
+fprintf("\nWe can perform the change of variables \n \x3A6(x) = \n");
+fprintf("\t\t%s\n", xi_value);
 
-fprintf("The feedback linearization we look for is then");
-u_fl = vpa(alpha + beta * v)
+u = alpha + beta * v;
+fprintf("\nThe feedback linearization control we look for is then \nu = %s\n", u);
 fprintf("and following the above results we have y^(r) = v \n");
 
-fprintf("We then have the new system: \n");
 syms xi [rel_deg 1]
 syms xi_dot [rel_deg 1]
-syms doty_r
-new_state = xi;
-new_state_dot = xi_dot;
-new_f = [vpa(xi_value(2:end)).'; vpa(Lf_total(end))];
-new_g = [zeros(rel_deg-1, 1); vpa(Lg_total(end))];
-% xi_dot = new_f + new_g * v
-xi_dot1 = new_f(1) + new_g(1) * doty_r
-xi_dot2 = new_f(2) + new_g(2) * doty_r
-xi_dot3 = new_f(3) + new_g(3) * doty_r
-xi_dot4 = new_f(4) + new_g(4) * doty_r
+syms y_dotr
 
-fprintf("From here on out, we could add another feedback control to " + ...
+new_f = [xi_value(2:end).'; Lf_total(end)];
+new_g = [zeros(rel_deg-1, 1); Lg_total(end)];
+v = y_dotr;
+
+% xi_dot = new_f + new_g * v
+xi_dot(1) = new_f(1) + new_g(1) * v;
+xi_dot(2) = new_f(2) + new_g(2) * v;
+xi_dot(3) = new_f(3) + new_g(3) * v;
+xi_dot(4) = new_f(4) + new_g(4) * v;
+fprintf("\nWe then have the new system: \n \x3BE = \n");
+fprintf("\t%s\n", xi_dot);
+
+fprintf("\nFrom here on out, we could add another feedback control to " + ...
     "stabilize the system and give it the eigenvalues we want, \nor we " + ...
     "could also design a particular controller for what we're trying " + ...
     "to achieve. \n");
 
 %% Partial feedback linearization
+fprintf("\nPARTIAL FEEDBACK LINEARIZATION\n");
 
-fprintf("\n");
+[r_fric, Lf_fric, Lg_fric] = SISOFL(f, G, output_wfriction, state, state0);
 
-[r_fric, Lf_fric, Lg_fric] = SISOFL(F_nopars_fric, G_nopars, ...
-                       subs(output_wfriction, pars, pars_num), state, state0);
-
-fprintf("Considering frictions in the output, the system has " + ...
+fprintf("\nConsidering frictions in the output, the system has " + ...
     "relative degree %d; the state space is still of " + ...
     "size %d.\n", r_fric, length(state));
 
 if r_fric >= length(state)
-    fprintf("We can still achieve a complete decoupling feedback " + ...
+    fprintf("\nWe can still achieve a complete decoupling feedback " + ...
         "linearization. \n")
 else
-    fprintf("Now a complete decoupling feedback linearization is not " + ...
+    fprintf("\nNow a complete decoupling feedback linearization is not " + ...
         "possible. We must proceed in another way. \n")
 end
 
 xi_fric = Lf_fric(1:end-1);
+zeta1 = a11 * fp + theta2;
+zeta2 = thetad2;
+zeta = [zeta1, zeta2];
+fprintf("\nWe first choose as state variables \n\x3BE = \n");
+fprintf("\t%s\n", xi_fric);
+fprintf("\nan to complete the variable change we set: \n \x3B6 = \n");
+fprintf("\t%s\n", zeta);
 
-fprintf("To complete the variable change we choose: \n");
-
-syms zeta1 zeta2
-zeta1_fric = a11 * fp + theta2;
-zeta2_fric = thetad2;
-zeta_fric = [zeta1_fric, zeta2_fric];
-
-fprintf("It can be easily checked that these are indipendent from " + ...
-    "the xi variables already established, and among themselves. \n" + ...
-    "We have \nrank([[xi1;x2], [zeta1, zeta2]])=%d \n and \n" + ...
-    "det(phi)|_0=det([xi; zeta])|_0=%d \n", ...
+fprintf("\nIt can be easily checked that these are indipendent from " + ...
+    "the \x3BE variables already established, and among themselves. \n" + ...
+    "We have \n\trank([[\x3BE], [\x3B6]])=%d \nand \n\t" + ...
+    "det(\x3A6)|_0=det([\x3BE; \x3B6])|_0=%d \n", ...
     rank([xi_fric.',[theta1+theta2; theta2]]), ...
-    subs(det(jacobian([xi_fric, zeta_fric], state)), state, state0));
+    subs(det(jacobian([xi_fric, zeta], state)), state, state0));
 
-fprintf("Moreover: \n")
-Lg_zeta1 = ScalarFDerivative(G_nopars, zeta1_fric, state)
-Lg_zeta2 = ScalarFDerivative(G_nopars, zeta2_fric, state)
+Lg_zeta1 = ScalarFDerivative(G, zeta1, state);
+Lg_zeta2 = ScalarFDerivative(G, zeta2, state);
+fprintf("\nMoreover: \n Lg\x3B6\x2081 = %s \n Lg\x3B6\x2082 = %s \n", ...
+    Lg_zeta1, Lg_zeta2)
 
-phi = [xi_fric, zeta_fric];
-
-fprintf("After the change of variables wee have \n");
-syms xi_dot [1 2]
-xis = [xi(1); xi(2)];
-xi1_dot = Lf_fric(2)
-xi2_dot = Lf_fric(end) + Lg_fric(end) * u
+syms dxi_pfl [1 2]
+xi_pfl = [xi(1); xi(2)];
+dxi_pfl(1) = Lf_fric(2);
+dxi_pfl(2) = Lf_fric(end) + Lg_fric(end) * u;
+fprintf("\nAfter the change of variables \x3A6(x) = [\x3BE; \x3B6], " + ...
+    "we have \nd\x3BE = \n");
+fprintf("\t%s\n", dxi_pfl);
 
 a = Lg_fric(end);
 b = Lf_fric(end);
+u = - b/a + 1/a * v;
+fprintf("\nFor the partial feedback linearization we then set: v = \x3BE^(r)\n");
+fprintf("as new input and the feedback control as: \n u = %s\n", u);
 
-fprintf("For the partial feedback linearization we then set: \n");
-xi_dot2 = v
-fprintf("as new input and the feedback control as: \n");
-u = - b/a + 1/a * v
-
-Lf_zeta1 = ScalarFDerivative(F_nopars_fric, zeta1_fric, state);
-Lf_zeta2 = ScalarFDerivative(F_nopars_fric, zeta2_fric, state);
+% Compute f-derivatives in x_0
+Lf_zeta1 = ScalarFDerivative(f, zeta1, state);
+Lf_zeta2 = ScalarFDerivative(f, zeta2, state);
 Lf_zeta1_0 = subs(Lf_zeta1, xi_fric, [0, 0]);
 Lf_zeta2_0 = subs(Lf_zeta2, xi_fric, [0, 0]);
 
+% Linearized system dynamics
 r = r_fric; % = length(xi_fric)
 n = length(state);
-m = length(zeta_fric);
+m = length(zeta);
 q = [Lf_zeta1; Lf_zeta2];
 p = [Lg_zeta1; Lg_zeta2];
 A = [[zeros(r-1, 1), eye(r-1)]; zeros(1, r)];
 B = [zeros(r-1, 1); 1];
 C = [1 zeros(1, r-1)];
 
-% Linearized system
-dyn = A*xis + B*v;
-out = C*xis;
+fprintf("\nThe linearized system would be: \n");
+dynamics = A*xi_pfl + B*v
+out = C*xi_pfl
 
 %% 0-dynamics
-fprintf("After achieving a partial feedback linearization, we must " + ...
-    "make sure the linearized system is also internally stable. \n");
+fprintf("\n ZERO DYNAMICS\n");
 
-fprintf("To ensure y(t)=0 it must be zeta_dot = q(0, eta) for all zeta_0\n");
+fprintf("\nAfter achieving a partial feedback linearization, we want " + ...
+    "to make sure the linearized system is also internally stable. \n");
+
+fprintf("\nTo ensure y(t)=0, d\x3B6 = q(0, \x3B6) should be " + ...
+    "asympthotically stable in \x3B6_0.\n");
 
 q0 = subs(q, xi_fric, [0,0]);
-zeta1_dot = q0(1) + p(1)
-zeta2_dot = q0(2) + p(2)
+p0 = subs(p, xi_fric, [0,0]);
+zeta1_dot = q0(1) + p0(1)*v
+zeta2_dot = q0(2) + p0(2)*v
 
-fprintf("Since this is not the case, the feedback linearization " + ...
-    "control does not make the non-linear system both internally " + ...
-    "and externally stable. \nNo conclusion can be made with only this " + ...
-    "theorem.\n");
+q_mat = [[0, 1]; [-1/(fp + theta2*(m11*l1^2 + (m2 + m12)*l2^2 + J1)), 0]];
+q_svd = svd(q_mat);
+fprintf("\nNow, q(\x3BE\x2080) can be written as\nq(\x3BE\x2080) = \n");
+fprintf("\t\t%s %s\n", q_mat.');
+fprintf("which has singular values \n\x3BB = \n");
+fprintf("\t%s\n", q_svd);
+
+friction = @(th1d) cp1*sign(th1d) + cp2*th1d;
+fprintf("\nFinally, the friction can be modelled as %s\n", char(friction));
+
+svd_num = subs(q_svd, pars, pars_num);
+fprintf("\nSince d\x3B8\x2081 is \x3Be\x2082, for the zero dynamics " + ...
+    "we must set it to zero, obtaining \n\x3BB = \n")
+fprintf("\t%s\n", vpa(subs(svd_num, fp, friction(0))));
+
+fprintf("\nSince these are always positive for any 𝜁_0, the zero " + ...
+    "dynamics is not stable and we cannot conclude on the nonlinear " + ...
+    "system internal stability.\n");

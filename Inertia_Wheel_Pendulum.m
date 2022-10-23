@@ -1,24 +1,21 @@
 %% Variables and constants
 
+% NL state variables
 syms theta [1 2] real
-
 syms thetad [1 2] real
 
-% Inertia matrix
+% Inertia matrices
 syms J1 J2 positive real
 
-% 
+% Inputs
 syms u v
 
-%  mass
+% Masses
 syms mc m11 m12 m2 positive real
 
-% 
-syms l [1 2] positive real
-
-syms cp1 cp2 real
-
+% Friction model function and coefficients
 syms fp
+syms cp1 cp2 real
 
 % System state array
 state = [theta1 thetad1 theta2 thetad2];
@@ -29,7 +26,7 @@ pars = [J1 J2 mc m11 m12 m2 l1 l2 cp1 cp2];
 % Gravitational accelaration
 g = 9.81;
 
-% Numerical values out of "Robotics, vision and control - P. Corke" example
+% Parameters numerical values
 J1_num = 180E-6; % [kg/m^2]
 J2_num = 36E-6; % [kg/m^2]
 mc_num = 4.34; % [kg]
@@ -40,7 +37,6 @@ l1_num = 0.04; % [m]
 l2_num = 0.125; % [m]
 cp1_num = 0.00225; % [(N*m*s)/rad]
 cp2_num = 0.0002; % [(N*m*s)/rad]
-
 pars_num = [J1_num J2_num mc_num m11_num m12_num m2_num l1_num l2_num cp1_num cp2_num];
 
 % Flags
