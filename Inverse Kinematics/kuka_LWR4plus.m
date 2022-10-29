@@ -16,14 +16,14 @@ euler_labels = ["X [deg]", "Y [deg]", "Z [deg]"];
 quat_labels = ["Qw", "Qx", "Qy", "Qz"];
 q_titles = ["q1", "q2", "q3", "q4", "q5", "q6", "q7"];
 
-%% Numerical Data [cm]
-% Robot measurements
+%% Numerical Data
+% Robot measurements [cm]
 l0 = 0.11; l1 = 0.20; l2 = 0.20; l3 = 0.20; l4 = 0.20; l5 = 0.19;
 
-%Circle radius
+%Circle radius [cm]
 r = 0.2;
 
-% Task height from ground
+% Task height from ground [cm]
 h = 0.65;
 
 % Dampening factor
