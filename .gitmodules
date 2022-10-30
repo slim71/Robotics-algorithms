@@ -1,0 +1,3 @@
+[submodule "MATLAB-scripts"]
+	path = MATLAB-scripts
+	url = https://github.com/slim71/MATLAB-scripts
