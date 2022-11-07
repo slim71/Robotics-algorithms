@@ -58,15 +58,6 @@ dyn = Bdyn*ddq + Cdyn*dq + Gdyn;
 
 %% Regressor
 
-% abbirb.links(i).m      % masses
-% abbirb.links(i).r      % com
-% abbirb.links(i).I(1,1) % inertia
-% abbirb.links(i).I(1,2)
-% abbirb.links(i).I(1,3)
-% abbirb.links(i).I(2,2)
-% abbirb.links(i).I(2,3)
-% abbirb.links(i).I(3,3)
-
 for i = 1:num_links
     parameters(i, 1) = mass(i);
     parameters(i, 2) = x(i);

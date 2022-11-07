@@ -7,7 +7,7 @@ end
 
 %% Uncertainties
 % Copy robot object to isolate computations
-abbact = abbirb;
+abbact = abbirb_unc;
 
 n_links = size(abbact.links, 2);
 n_link_pars = 10;
@@ -41,8 +41,8 @@ kp = 100 * diag([1 1 1 1 1 1]);
 kd = 100 * diag([1 1 1 1 1 1]);
 kg = 100 * diag([1 1 1 1 1 1]);
 % R,P in Lyapunov candidate, so they're positive definite
-R = 10 * diag(ones(1, n_link_pars*n_links));
-P = 10 * diag(ones(1, 2*n_links));
+R = 100 * diag(ones(1, n_link_pars*n_links));
+P = 100 * diag(ones(1, 2*n_links));
 
 q0s = [q0'; dq0'];
 for i = 1:length(t)
@@ -221,9 +221,12 @@ plot3(x_traj, y_traj, z_traj, '-or');
 grid on
 hold on
 plot3(act_ee_x, act_ee_y, act_ee_z, '-ob');
-xlabel('x')
-ylabel('y')
-zlabel('z')
+plot3(act_ee_x(1), act_ee_y(1), act_ee_z(1), 'g*', 'MarkerSize', 20);
+plot3(act_ee_x(end), act_ee_y(end), act_ee_z(end), 'm*', 'MarkerSize', 20);
+legend("Desired trajectory", "E-E positions", "Starting position", "Ending position");
+xlabel('x [mm]')
+ylabel('y [mm]')
+zlabel('z [mm]')
 
 % Keeping above in mind, look at this
 final_dif = figure2('Name', 'ACT resulting behavior');

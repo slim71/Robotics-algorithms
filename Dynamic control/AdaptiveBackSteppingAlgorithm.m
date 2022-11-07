@@ -7,7 +7,7 @@ end
 
 %% Uncertainties
 % Copy robot object to isolate computations
-abbabs = abbirb;
+abbabs = abbirb_unc;
 
 n_links = size(abbabs.links, 2);
 n_link_pars = 10;
@@ -37,17 +37,17 @@ result_abs_dq = zeros(size(q0, 2), length(t));
 result_bs_ddq = zeros(size(q0, 2), length(t));
 
 % Gains
-Kp = 1000 * diag([1 1 1 1 1 1]);
-Kd = 1000 * diag([1 1 1 1 1 1]);
-Kg = 1000 * diag([1 1 1 1 1 1]);
+Kp = 10 * diag([1 1 1 1 1 1]);
+Kd = 10 * diag([1 1 1 1 1 1]);
+Kg = 100 * diag([1 1 1 1 1 1]);
 % R in Lyapunov candidate, so it's positive definite
-R = 10 * diag(ones(1, n_link_pars*n_links));
+R = 100 * diag(ones(1, n_link_pars*n_links));
 
 q0s = [q0'; dq0'];
 for i = 1:length(t)
     des = [q_des(:, i); dq_des(:, i); ddq_des(:, i)];
     
-    % Set dynamics parameters
+    % Set dynamics parameters to updated values
     for j = 1:n_links
         % Masses
         abbabs.links(j).m = abs_unc_pars((j-1)*n_link_pars+1, i);
@@ -221,9 +221,12 @@ plot3(x_traj, y_traj, z_traj, '-or');
 grid on
 hold on
 plot3(abs_ee_x, abs_ee_y, abs_ee_z, '-ob');
-xlabel('x')
-ylabel('y')
-zlabel('z')
+plot3(abs_ee_x(1), abs_ee_y(1), abs_ee_z(1), 'g*', 'MarkerSize', 20);
+plot3(abs_ee_x(end), abs_ee_y(end), abs_ee_z(end), 'm*', 'MarkerSize', 20);
+legend("Desired trajectory", "E-E positions", "Starting position", "Ending position");
+xlabel('x [mm]')
+ylabel('y [mm]')
+zlabel('z [mm]')
 
 % Keeping above in mind, look at this
 final_dif = figure2('Name', 'ABS resulting behavior');

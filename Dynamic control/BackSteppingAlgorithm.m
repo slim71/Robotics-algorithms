@@ -117,7 +117,7 @@ for i = 1:n_poseerr
     if i <= 3
         plot(t, bs_pose_error(i, :))
     else
-        plot(t, rad2deg(bs_pose_error(i, :)))
+        plot(t, wrapTo180(rad2deg(bs_pose_error(i, :))))
     end
 
     grid
@@ -147,9 +147,12 @@ plot3(x_traj, y_traj, z_traj, '-or');
 grid on
 hold on
 plot3(bs_ee_x, bs_ee_y, bs_ee_z, '-ob');
-xlabel('x')
-ylabel('y')
-zlabel('z')
+plot3(bs_ee_x(1), bs_ee_y(1), bs_ee_z(1), 'g*', 'MarkerSize', 20);
+plot3(bs_ee_x(end), bs_ee_y(end), bs_ee_z(end), 'm*', 'MarkerSize', 20);
+legend("Desired trajectory", "E-E positions", "Starting position", "Ending position");
+xlabel('x [mm]')
+ylabel('y [mm]')
+zlabel('z [mm]')
 
 % Keeping above in mind, look at this
 final_dif = figure2('Name', 'Resulting BS behavior');

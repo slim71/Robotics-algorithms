@@ -1,11 +1,11 @@
 %% Preparations
 clc; close all; clear all
 
-qlabels = ["$q_{1}$"; "$q_{2}$"; "$q_{3}$"; "$q_{4}$"; "$q_{5}$"; "$q_{6}$"];
-qdlabels = ["$\dot{q_{1}}$"; "$\dot{q_{2}}$"; "$\dot{q_{3}}$"; 
-            "$\dot{q_{4}}$"; "$\dot{q_{5}}$"; "$\dot{q_{6}}$"];
-qddlabels = ["$\ddot{q_{1}}$"; "$\ddot{q_{2}}$"; "$\ddot{q_{3}}$"; 
-             "$\ddot{q_{4}}$"; "$\ddot{q_{5}}$"; "$\ddot{q_{6}}$"];
+qlabels = ["$q_{1} [rad]$"; "$q_{2} [rad]$"; "$q_{3} [rad]$"; "$q_{4} [rad]$"; "$q_{5} [rad]$"; "$q_{6} [rad]$"];
+qdlabels = ["$\dot{q_{1}} [rad/s]$"; "$\dot{q_{2}} [rad/s]$"; "$\dot{q_{3}} [rad/s]$"; 
+            "$\dot{q_{4}} [rad/s]$"; "$\dot{q_{5}} [rad/s]$"; "$\dot{q_{6}} [rad/s]$"];
+qddlabels = ["$\ddot{q_{1}} [rad/s^2]$"; "$\ddot{q_{2}} [rad/s^2]$"; "$\ddot{q_{3}} [rad/s^2]$"; 
+             "$\ddot{q_{4}} [rad/s^2]$"; "$\ddot{q_{5}} [rad/s^2]$"; "$\ddot{q_{6}} [rad/s^2]$"];
 eeaxislabels = ["x [mm]"; "y [mm]"; "z [mm]"; "x [deg]"; "y [deg]"; "z [deg]"];
 
 %% Importing needed robot model
@@ -23,6 +23,9 @@ show(abbirb_urdf, 'visuals', 'on', 'collision', 'off');
 xlim([-0.5, 1]);
 ylim([-0.5, 0.5]);
 zlim([0, 1.1]);
+ylabel("Y [m]");
+xlabel("X [m]");
+zlabel("Z [m]");
 
 wo_mesh = figure2('Name', 'IRB1660 model without mesh');
 show(abbirb_urdf, 'visuals', 'off', 'collision', 'off');
@@ -31,21 +34,6 @@ ylim([-0.5, 0.5]);
 zlim([0, 1.1]);
 
 %% Robot dimensions and DH parameters
-
-% Lenghts [mm]
-d1 = 486.5;
-d4 = 600;
-d6 = 65;
-a1 = 150;
-a2 = 475;
-
-% Angles [rad]
-alpha1 = -pi/2;
-alpha3 = -pi/2;
-alpha4 = pi/2;
-alpha5 = pi/2;
-theta2_0 = -pi/2;
-theta5_0 = pi;
 
 % Masses [g]
 % Links 3 through six are treated as a single body
@@ -64,6 +52,21 @@ z_cm1 = -11.92;
 z_cm2 = -182.8;
 z_cm3 = 96.81;
 
+% Lenghts [mm]
+d1 = 486.5;
+d4 = 600;
+d6 = 65;
+a1 = 150;
+a2 = 475;
+
+% Angles [rad]
+alpha1 = -pi/2;
+alpha3 = -pi/2;
+alpha4 = pi/2;
+alpha5 = pi/2;
+theta2_0 = -pi/2;
+theta5_0 = pi;
+
 %% Denavit-Hartenberg
 % 6 joints, 5 links + 1 E-E
 
@@ -74,12 +77,20 @@ L3 = Link('d', 0,  'a', 0,  'alpha', alpha3, 'offset', 0,        'revolute');
 L4 = Link('d', d4, 'a', 0,  'alpha', alpha4, 'offset', 0,        'revolute');
 L5 = Link('d', 0,  'a', 0,  'alpha', alpha5, 'offset', theta5_0, 'revolute');
 L6 = Link('d', d6, 'a', 0,  'alpha', 0,      'offset', 0,        'revolute');
+L1_unc = Link('d', d1, 'a', a1, 'alpha', alpha1, 'offset', 0,        'revolute');
+L2_unc = Link('d', 0,  'a', a2, 'alpha', 0,      'offset', theta2_0, 'revolute');
+L3_unc = Link('d', 0,  'a', 0,  'alpha', alpha3, 'offset', 0,        'revolute');
+L4_unc = Link('d', d4, 'a', 0,  'alpha', alpha4, 'offset', 0,        'revolute');
+L5_unc = Link('d', 0,  'a', 0,  'alpha', alpha5, 'offset', theta5_0, 'revolute');
+L6_unc = Link('d', d6, 'a', 0,  'alpha', 0,      'offset', 0,        'revolute');
+
+%% Robot models
 
 % Real robot
-abbirb = SerialLink([L1, L2, L3, L4, L5, L6], 'name', 'ABBIRB1600');
-% Model of the robot (used in adaptive computed torque control) 
-% TODO: ?
-% abbirb_model = SerialLink([L1, L2, L3, L4, L5, L6], 'name', 'ABBIRB1600model');
+abbirb = SerialLink([L1, L2, L3, L4, L5, L6], 'name', 'ABBIRB1600', 'plotopt', {'notiles'});
+
+% Uncertan model of the robot (used in adaptive controls) 
+abbirb_unc = SerialLink([L1, L2, L3, L4, L5, L6], 'name', 'ABBIRB1600unc', 'plotopt', {'notiles'});
 
 %% Set real link masses, lengths and inertia
 % ref. system: z up, x forward
@@ -114,6 +125,35 @@ abbirb.links(4).I = diag([0, 0, 0]);
 abbirb.links(5).I = diag([0, 0, 0]);
 abbirb.links(6).I = diag([0, 0, 0]);
 
+%% Uncertain model parameters
+
+% Percentage of uncertainty on parameters value
+unc = 10; % 10%
+
+% Masses
+abbirb_unc.links(1).m = m1 * (1 + unc/100);
+abbirb_unc.links(2).m = m2 * (1 + unc/100);
+abbirb_unc.links(3).m = m3 * (1 + unc/100);
+abbirb_unc.links(4).m = 0;
+abbirb_unc.links(5).m = 0;
+abbirb_unc.links(6).m = 0;
+
+% Centers of gravity; links 3 through 6 are considered as together
+abbirb_unc.links(1).r = [x_cm1 * (1 + unc/100), y_cm1 * (1 + unc/100), z_cm1 * (1 + unc/100);];
+abbirb_unc.links(2).r = [x_cm2 * (1 + unc/100), y_cm2 * (1 + unc/100), z_cm2 * (1 + unc/100)];
+abbirb_unc.links(3).r = [x_cm3 * (1 + unc/100), y_cm3 * (1 + unc/100), z_cm3 * (1 + unc/100)];
+abbirb_unc.links(4).r = [0, 0, 0];
+abbirb_unc.links(5).r = [0, 0, 0];
+abbirb_unc.links(6).r = [0, 0, 0];
+
+% Inertia matrices [g * mm^2]
+abbirb_unc.links(1).I = abbirb.links(1).I *(1 + unc/100);
+abbirb_unc.links(2).I = abbirb.links(2).I *(1 + unc/100);
+abbirb_unc.links(3).I = abbirb.links(3).I *(1 + unc/100);
+abbirb_unc.links(4).I = diag([0, 0, 0]);
+abbirb_unc.links(5).I = diag([0, 0, 0]);
+abbirb_unc.links(6).I = diag([0, 0, 0]);
+
 %% Numerical preparations
 
 n_joint = size(abbirb.links, 2);
@@ -130,7 +170,7 @@ t = t_init:delta_t:t_end;
 q0 = [0, 0, 0, 0, 0, 0];
 q_dot0	= [0, 0, 0, 0, 0, 0]';
 
-q0_fig = figure2('Name', 'Inital pose');
+q0_fig = figure2('Name', 'Initial pose');
 abbirb.plot(q0);
 
 %% Forward kinematics
@@ -151,6 +191,12 @@ z_traj = center(3) + radius * cos(t/t(end)*2*pi);
 traj_fig = figure2('Name', 'Trajectory');
 plot3(x_traj, y_traj, z_traj);
 grid on
+hold on
+plot3(center(1), center(2), center(3), 'ob')
+legend("trajectory", "Center (C)")
+ylabel("Y [mm]");
+xlabel("X [mm]");
+zlabel("Z [mm]");
 
 sit_fig = figure2('Name', 'Initial situation');
 hold on

@@ -57,7 +57,7 @@ for i = 1:n_resq
     sp = subplot(n_resq, 1, i);
     hold on
     
-    plot(t, result_ct_q(i, :))
+    plot(t, rem(result_ct_q(i, :), 2*pi))
 
     grid
     xlabel("time [s]");
@@ -116,7 +116,7 @@ for i = 1:n_poseerr
     if i <= 3
         plot(t, ct_pose_error(i, :))
     else
-        plot(t, rad2deg(ct_pose_error(i, :)))
+        plot(t, wrapTo180(rad2deg(ct_pose_error(i, :))))
     end
 
     grid
@@ -146,9 +146,12 @@ plot3(x_traj, y_traj, z_traj, '-or');
 grid on
 hold on
 plot3(ee_x, ee_y, ee_z, '-ob');
-xlabel('x')
-ylabel('y')
-zlabel('z')
+plot3(ee_x(1), ee_y(1), ee_z(1), 'g*', 'MarkerSize', 20);
+plot3(ee_x(end), ee_y(end), ee_z(end), 'm*', 'MarkerSize', 20);
+legend("Desired trajectory", "E-E positions", "Starting position", "Ending position");
+xlabel('x [mm]')
+ylabel('y [mm]')
+zlabel('z [mm]')
 
 % Keeping above in mind, look at this
 final_dif = figure2('Name', 'Resulting CT behavior');
