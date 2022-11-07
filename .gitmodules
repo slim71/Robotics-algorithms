@@ -1,3 +1,12 @@
 [submodule "MATLAB-scripts"]
 	path = MATLAB-scripts
 	url = https://github.com/slim71/MATLAB-scripts
+[submodule "Dynamic control/spatial-math"]
+	path = Dynamic control/spatial-math
+	url = https://github.com/petercorke/spatial-math
+[submodule "Dynamic control/robotics-toolbox-matlab"]
+	path = Dynamic control/robotics-toolbox-matlab
+	url = https://github.com/petercorke/robotics-toolbox-matlab
+[submodule "Dynamic control/toolbox-common-matlab"]
+	path = Dynamic control/toolbox-common-matlab
+	url = https://github.com/petercorke/toolbox-common-matlab
