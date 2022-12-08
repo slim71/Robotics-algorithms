@@ -70,7 +70,7 @@ for i = 1:length(t)
     % 1. time (not used)
     % 2. [q, dq], stacked in rows
     [~, act_result] = ode15s(@(t,y) CT_odefun(t,y,des,kp,kd,abbact), ...
-                             [t_init, t_end/100], q0s);
+                             [t_init, t_end], q0s);
     fprintf("Elapsed %d s for ACT solution, %d iterations \n", toc, i);
 
     % Save results
@@ -87,7 +87,7 @@ for i = 1:length(t)
         [~, int_pars] = ode15s(@(t,y) ACTUncertainties_odefun(t,y, ...
                                         [result_act_q(:,i)',result_act_dq(:,i)'], ...
                                                 des,R,P,abbact), ...
-                                        [t_init, t_end/100], act_unc_pars(:, i));
+                                        [t_init, t_end], act_unc_pars(:, i));
         fprintf("Elapsed %d s for ACT uncertainties, %d iterations \n", toc, i);
         act_unc_pars(:, i+1) = int_pars(end, :)';
     end
@@ -132,7 +132,7 @@ for i = 1:n_resq
     sp = subplot(n_resq, 1, i);
     hold on
     
-    plot(t, result_act_q(i, :))
+    plot(t, rem(result_act_q(i, :), 2*pi))
 
     grid
     xlabel("time [s]");
@@ -174,11 +174,13 @@ for i = 1:n_resddq
 end
 
 act_pose_error = zeros(6, size(result_act_q, 2));
+act_pose_angles = zeros(3, size(result_ct_q, 2));
 % Compute pose errors
 for i = 1:size(result_act_q, 2)
     tempfk = abbact.fkine(result_act_q(:, i)');
-    act_pose_error(1:3, i) = indexAt(tempfk.T, 1:3, 4)' - [x_traj(i), y_traj(i), z_traj(i)];
-    act_pose_error(4:6, i) = MatToRPY(indexAt(tempfk.T, 1:3, 1:3) - [des_theta(i), des_phi(i), des_psi(i)]);
+    act_pose_error(1:3, i) = indexAt(des_pose(i, :), 1:3) - indexAt(tempfk.T, 1:3, 4)';
+    act_pose_angles(:, i) = indexAt(MatToRPY(indexAt(tempfk.T, 1:3, 1:3)), 3:-1:1);
+    act_pose_error(4:6, i) = indexAt(des_pose(i, :), 4:6) - act_pose_angles(:, i)';
 end
 
 jposerr_fig = figure2('Name', 'ACT end-effector pose errors');
@@ -191,7 +193,7 @@ for i = 1:n_poseerr
     if i <= 3
         plot(t, act_pose_error(i, :))
     else
-        plot(t, rad2deg(act_pose_error(i, :)))
+        plot(t, wrapTo180(rad2deg(act_pose_error(i, :))))
     end
 
     grid

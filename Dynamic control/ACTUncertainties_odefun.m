@@ -2,6 +2,7 @@ function unc_pars_dot = ACTUncertainties_odefun(t, y, q_array, des_array, R, P, 
     
     n = size(q_array, 2)/2; % or size(des_array, 2)
 
+    % Current joint configuration
     qs = q_array(1:n);
     dqs = q_array(n+1:2*n);
 

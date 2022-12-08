@@ -15,18 +15,18 @@ result_ct_q = zeros(size(q0, 2), length(t));
 result_ct_dq = zeros(size(q0, 2), length(t));
 result_ct_ddq = zeros(size(q0, 2), length(t));
 
-kp = 20 * diag([1 1 1 1 1 1]);
-kd = 10 * diag([1 1 1 1 1 1]);
+kp = 100 * diag([1 1 1 1 1 1]);
+kd = 100 * diag([1 1 1 1 1 1]);
 
 q0s = [q0'; dq0'];
 for i = 1:length(t)
     des = [q_des(:, i); dq_des(:, i); ddq_des(:, i)];
     tic
-    % Output arguments: 
+    % Output arguments:
     % 1. time (not used)
     % 2. [q, dq], stacked in rows
     [~, comp_result] = ode15s(@(t,y) CT_odefun(t,y,des,kp,kd,abbirb), ...
-                              [t_init, t_end/100], q0s);
+                              [t_init, t_end], q0s);
     fprintf("Elapsed %d s for CT solution, %d iterations \n", toc, i);
 
     % Save results
@@ -99,12 +99,25 @@ for i = 1:n_resddq
 end
 
 ct_pose_error = zeros(6, size(result_ct_q, 2));
+ct_pose_angles = zeros(3, size(result_ct_q, 2));
 % Compute pose errors
 for i = 1:size(result_ct_q, 2)
     tempfk = abbirb.fkine(result_ct_q(:, i)');
-    ct_pose_error(1:3, i) = indexAt(tempfk.T, 1:3, 4)' - [x_traj(i), y_traj(i), z_traj(i)];
-    ct_pose_error(4:6, i) = MatToRPY(indexAt(tempfk.T, 1:3, 1:3) - [des_theta(i), des_phi(i), des_psi(i)]);
+    ct_pose_error(1:3, i) = indexAt(des_pose(i, :), 1:3) - indexAt(tempfk.T, 1:3, 4)';
+    ct_pose_angles(:, i) = indexAt(MatToRPY(indexAt(tempfk.T, 1:3, 1:3)), 3:-1:1);
+    ct_pose_error(4:6, i) = indexAt(des_pose(i, :), 4:6) - ct_pose_angles(:, i)';
 end
+
+% figure2()
+% for i = 1:3
+%     subplot(3,1,i)
+%     plot(t, ct_pose_angles(i,:))
+%     hold on
+%     grid on
+%     plot(t, des_pose(:,i+3))
+%     legend("current", "desired")
+%     xlabel("time [s]");
+% end
 
 jposerr_fig = figure2('Name', 'CT end-effector pose errors');
 sgtitle("CT end-effector pose errors");
