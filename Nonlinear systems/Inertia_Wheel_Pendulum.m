@@ -13,6 +13,9 @@ syms u v
 % Masses
 syms mc m11 m12 m2 positive real
 
+% Dimensions
+syms l1 l2 positive real
+
 % Friction model function and coefficients
 syms fp
 syms cp1 cp2 real
@@ -46,14 +49,20 @@ is_lo = false;
 
 %% Initial conditions
 state0 = [0 0 0 0];
+first_state = [pi/4 0 0 0]; % Used in simulink
 
 %% Vector fields and distributions describing the system
 
 D = (m11 * l1^2 + (m12 + m2) * l2^2 + J1) * J2;
+D_num = double(subs(D, pars, pars_num));
 a11 = J2 / D;
+a11_num = double(subs(a11, pars, pars_num));
 a12 = -J2 / D;
+a12_num = double(subs(a12, pars, pars_num));
 a21 = a12;
+a21_num = a12_num;
 a22 = (m11 * l1^2 + (m12 + m2)*l2^2 + J1 + J2) / D;
+a22_num = double(subs(a22, pars, pars_num));
 
 % Control input field
 g1 = [0 a12 0 a22]';
@@ -78,3 +87,27 @@ delta = [f G];
 % Output functions
 chosen_output = a22 * theta1 + a11 * theta2;
 output_wfriction = theta1;
+
+%% Simulink environment
+
+% Matrices defining the linearized system
+A = [[0 1 0 0]; 
+     [0 0 1 0]; 
+     [0 0 0 1]; 
+     [0 0 0 0]];
+eig(A)
+B = [0 0 0 1]';
+% Since we've used Pole Placement to stabilize the system, here's the
+% desired poles
+P = [-1 -0.75 -0.5 -0.25];
+Kpp = place(A, B, P);
+eig(A-B*Kpp)
+
+%% To be checked and perfectioned if needed
+% Here we wanted to perform reference tracking in Simulink
+% C = [0 0 0 1]; % only xi3
+% A_aug = [A zeros(size(A,1),1); C 0];
+% B_aug = [B; 0];
+% B_ref = [zeros(rank(A),1); 1];
+% P_aug = [P -10];
+% K_aug = place(A_aug, B_aug, P_aug);
