@@ -15,9 +15,12 @@ result_bs_q = zeros(size(q0, 2), length(t));
 result_bs_dq = zeros(size(q0, 2), length(t));
 result_bs_ddq = zeros(size(q0, 2), length(t));
 
-Kg = 10 * diag([1 1 1 1 1 1]);
-Kd = 10 * diag([1 1 1 1 1 1]);
-Kp = 10 * diag([1 1 1 1 1 1]);
+Lambda = 100 * diag([1 1 1 1 1 1]);
+Kd = Lambda;
+
+% Lambda = diag([0.3 0.3 0.1 0.1 0.05 0.01]);
+% Kd = 1 * diag([1 1 1 1 1 1]);
+Kp = 1 * diag([1 1 1 1 1 1]);
 
 q0s = [q0'; dq0'];
 for i = 1:length(t)
@@ -26,8 +29,10 @@ for i = 1:length(t)
     % Output arguments: 
     % 1. time (not used)
     % 2. [q, dq], stacked in rows
-    [~, bs_result] = ode15s(@(t,y) BS_odefun(t,y,des,Kg,Kd,Kp,abbirb), ...
+    [~, bs_result] = ode15s(@(t,y) BS_odefun(t,y,des,Lambda,Kd,Kp,abbirb), ...
                             [t_init, t_end/100], q0s);
+%     [~, bs_result] = ode15s(@(t,y) BS_odefun(t,y,des,Lambda,Kd,Kp,abbirb, des_pose(i,:), des_twist(i,:)), ...
+%                             [t_init, t_end/100], q0s);
     fprintf("Elapsed %d s for BS solution, %d iterations \n", toc, i);
 
     % Save results
@@ -48,7 +53,7 @@ for i = 1:size(result_bs_q, 2)
                                                    q_des(:, i)', ...
                                                    dq_des(:, i)', ...
                                                    ddq_des(:, i)', ...
-                                                   Kg,Kd,Kp);
+                                                   Lambda,Kd,Kp);
 end
 
 resq_fig = figure2('Name', 'Resulting BS joint configuration');
@@ -58,7 +63,7 @@ for i = 1:n_resq
     sp = subplot(n_resq, 1, i);
     hold on
     
-    plot(t, result_bs_q(i, :))
+    plot(t, rem(result_bs_q(i, :), 2*pi))
 
     grid
     xlabel("time [s]");
@@ -100,11 +105,13 @@ for i = 1:n_resddq
 end
 
 bs_pose_error = zeros(6, size(result_bs_q, 2));
+bs_pose_angles = zeros(3, size(result_bs_q, 2));
 % Compute pose errors
 for i = 1:size(result_bs_q, 2)
     tempfk = abbirb.fkine(result_bs_q(:, i)');
-    bs_pose_error(1:3, i) = indexAt(tempfk.T, 1:3, 4)' - [x_traj(i), y_traj(i), z_traj(i)];
-    bs_pose_error(4:6, i) = MatToRPY(indexAt(tempfk.T, 1:3, 1:3) - [des_theta(i), des_phi(i), des_psi(i)]);
+    bs_pose_error(1:3, i) = indexAt(des_pose(i, :), 1:3) - indexAt(tempfk.T, 1:3, 4)';
+    bs_pose_angles(:, i) = indexAt(MatToRPY(indexAt(tempfk.T, 1:3, 1:3)), 3:-1:1);
+    bs_pose_error(4:6, i) = indexAt(des_pose(i, :), 4:6) - bs_pose_angles(:, i)';
 end
 
 jposerr_fig = figure2('Name', 'BS end-effector pose errors');
